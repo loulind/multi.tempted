@@ -1,0 +1,12 @@
+# PERSONAL IGNORED FILES
+start.sh
+
+# DEFAULT IGNORED FILES
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.positai
+src/*.o
+src/*.so
+src/*.dll
