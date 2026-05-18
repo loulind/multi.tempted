@@ -1,5 +1,6 @@
 # PERSONAL IGNORED FILES
 start.sh
+man/figures/*
 
 # DEFAULT IGNORED FILES
 .Rproj.user
