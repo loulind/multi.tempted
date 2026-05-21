@@ -1,18 +1,25 @@
-# Hello, world!
-#
-# This is an example function named 'hello'
-# which prints 'Hello, world!'.
-#
-# You can learn more about package authoring with RStudio at:
-#
-#   https://r-pkgs.org
-#
-# Some useful keyboard shortcuts for package authoring:
-#
-#   Install Package:           'Cmd + Shift + B'
-#   Check Package:             'Cmd + Shift + E'
-#   Test Package:              'Cmd + Shift + T'
+#' multiTEMPTED Main Estimation Function
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+#'
+multi_tempted_all <- function(datlist, r=3, ) {
+  for (l in 1:r) {
+    # Step 1: Initialize subject and feature loadings per modality
+    # (a) Subject loadings
 
-hello <- function() {
-  print("Hello, world!")
+
+    # (b) Feature loadings
+
+    # Step 2: Sequentially estimate loadings
+    # (a) Time loadings
+    # (b) Subject loadings
+    # (c) Feature loadings
+
+    # Step 3: Remove contribution of current component & repeat steps 1-2 for all components
+
+    # Step 4: Estimate modality-specific scales
+  }
 }
