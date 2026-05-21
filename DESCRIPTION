@@ -2,7 +2,7 @@ Package: multi.tempted
 Type: Package
 Title: What the Package Does (Title Case)
 Version: 0.1.0
-Depends: R (>= 4.6.0), np (>= 0.60-17), ggplot2 (>= 3.4.0), methods (>= 4.2.1)
+Depends: R (>= 4.5.3), np (>= 0.60-17), ggplot2 (>= 3.4.0), methods (>= 4.2.1)
 Authors@R: c(
     person(
       "Jane", "Doe",

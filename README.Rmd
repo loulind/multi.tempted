@@ -2,6 +2,31 @@
 output: github_document 
 ---
 
+If working in Docker container, run the following code...
+```{zsh, eval=FALSE}
+# emulates amd64 if working on non-linux and builds container
+docker build . --platform=linux/amd64 -t multi.tempted
+
+# ports to 8787 for rocker container
+docker run \
+  --platform=linux/amd64 \
+  -v $(pwd):/home/rstudio/work \
+  -e PASSWORD=123 \
+  -p 8787:8787 \
+  multi.tempted
+```
+
+Then in containerized R-studio session,
+(1) open File > Open Project then select multi.tempted.Rproj (adds git tab)
+(2) once opened, run...
+```{r, eval=FALSE}
+setwd('~/work')
+library(devtools)
+library(testthat)
+library(roxygen2)
+library(knitr)
+```
+
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ```{r, include = FALSE}
@@ -41,7 +66,7 @@ library(multi.tempted)
 What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
 
 ```{r cars}
-summary(cars)
+
 ```
 
 You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
@@ -49,7 +74,7 @@ You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-da
 You can also embed plots, for example:
 
 ```{r pressure, echo = FALSE}
-plot(pressure)
+
 ```
 
 In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
