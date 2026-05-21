@@ -1,5 +1,6 @@
 ---
-output: github_document 
+title: "multiTEMPTED Vignette"
+output: github_document
 ---
 
 If working in Docker container, run the following code...
@@ -17,8 +18,8 @@ docker run \
 ```
 
 Then in containerized R-studio session,
-(1) open File > Open Project then select multi.tempted.Rproj (adds git tab)
-(2) once opened, run...
+1. open File > Open Project then select multi.tempted.Rproj (adds git tab)
+2. once opened, run...
 ```{r, eval=FALSE}
 setwd('~/work')
 library(devtools)
@@ -38,12 +39,24 @@ knitr::opts_chunk$set(
 )
 ```
 
-# multi.tempted
+# multiTEMPTED
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of multi.tempted is to ...
+The goal of multiTEMPTED is to to implement the statistical method TEMPoral TEnsor Decomposition (TEMPTED) generalized to multiple modalities.
+
+Package dependencies: R (>= 4.5.3), np (>= 0.60-17), ggplot2 (>= 3.4.0), methods (>= 4.2.1)
+
+Run time ____?____
+
+You can cite this paper for using TEMPTED: ____?____
+
+The statistical theories behind TEMPTED can be found in this paper:
+
+____?____
+
+____?____
 
 ## Installation
 
@@ -54,27 +67,18 @@ You can install the development version of multi.tempted from [GitHub](https://g
 pak::pak("loulind/multi.tempted")
 ```
 
-## Example
+____?_____
 
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
-library(multi.tempted)
-## basic example code
-```
-
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
-
-```{r cars}
-
-```
-
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-
-```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
+## Load packages for this vignette
+## Read the example data
+## Running TEMPTED for different formats of data
+## Run TEMPTED for Microbiome Count Data (Straightforward Way)
+### ___?steps?____
+## Run TEMPTED for Microbiome Compositional Data (Straightforward Way)
+### ___?steps?____
+## Run TEMPTED for General Form of Multivariate Longitudinal Data (Straightforward Way)
+### ___?steps?____
+## Run TEMPTED in Customized Way
+### ___?steps?____
+## Transferring TEMPTED result from training to testing data
+### ___?steps?____

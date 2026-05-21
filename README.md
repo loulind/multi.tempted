@@ -1,3 +1,5 @@
+multiTEMPTED Vignette
+================
 
 If working in Docker container, run the following code…
 
@@ -14,8 +16,8 @@ docker run \
   multi.tempted
 ```
 
-Then in containerized R-studio session, (1) open File \> Open Project
-then select multi.tempted.Rproj (adds git tab) (2) once opened, run…
+Then in containerized R-studio session, 1. open File \> Open Project
+then select multi.tempted.Rproj (adds git tab) 2. once opened, run…
 
 ``` r
 setwd('~/work')
@@ -27,13 +29,28 @@ library(knitr)
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# multi.tempted
+# multiTEMPTED
 
 <!-- badges: start -->
 
 <!-- badges: end -->
 
-The goal of multi.tempted is to …
+The goal of multiTEMPTED is to to implement the statistical method
+TEMPoral TEnsor Decomposition (TEMPTED) generalized to multiple
+modalities.
+
+Package dependencies: R (\>= 4.5.3), np (\>= 0.60-17), ggplot2 (\>=
+3.4.0), methods (\>= 4.2.1)
+
+Run time \_\_\_\_?\_\_\_\_
+
+You can cite this paper for using TEMPTED: \_\_\_\_?\_\_\_\_
+
+The statistical theories behind TEMPTED can be found in this paper:
+
+\_\_\_\_?\_\_\_\_
+
+\_\_\_\_?\_\_\_\_
 
 ## Installation
 
@@ -45,27 +62,30 @@ You can install the development version of multi.tempted from
 pak::pak("loulind/multi.tempted")
 ```
 
-## Example
+\_\_\_\_?\_\_\_\_\_
 
-This is a basic example which shows you how to solve a common problem:
+## Load packages for this vignette
 
-``` r
-library(multi.tempted)
-#> Loading required package: np
-#> np 0.70-2
-#> Examples and guides at https://jeffreyracine.github.io/gallery/
-#> See also vignette("np_getting_started", package = "np")
-#> Loading required package: ggplot2
-## basic example code
-```
+## Read the example data
 
-What is special about using `README.Rmd` instead of just `README.md`?
-You can include R chunks like so:
+## Running TEMPTED for different formats of data
 
-You’ll still need to render `README.Rmd` regularly, to keep `README.md`
-up-to-date. `devtools::build_readme()` is handy for this.
+## Run TEMPTED for Microbiome Count Data (Straightforward Way)
 
-You can also embed plots, for example:
+### ***?steps?***\_
 
-In that case, don’t forget to commit and push the resulting figure
-files, so they display on GitHub and CRAN.
+## Run TEMPTED for Microbiome Compositional Data (Straightforward Way)
+
+### ***?steps?***\_
+
+## Run TEMPTED for General Form of Multivariate Longitudinal Data (Straightforward Way)
+
+### ***?steps?***\_
+
+## Run TEMPTED in Customized Way
+
+### ***?steps?***\_
+
+## Transferring TEMPTED result from training to testing data
+
+### ***?steps?***\_
