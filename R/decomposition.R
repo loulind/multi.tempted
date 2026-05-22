@@ -1,6 +1,7 @@
-#' @title Decomposition of multiple temporal tensors
+#' @title Decomposition of temporal tensors
 #' @description
-#' Main function of multiTEMPTED
+#' CP-type decomposition of M 3d tensors (subject x feature x time).
+#' Performed after formatting data!
 #'
 #' @param datlists A length M named list of length n lists of matrices.
 #' Each named list element represents a modality.
@@ -16,7 +17,7 @@
 #'
 #' @examples
 #'
-multi_tempted <- function(datlists, r=3) {
+multi_tempted_decomp <- function(datlists, r=3) {
   if (!(length(unique(lengths(datlists))) == 1)) {
     stop("All lists of matrices must be same length")
   }
@@ -26,15 +27,15 @@ multi_tempted <- function(datlists, r=3) {
   for (m in 1:M) {
     p <- sapply(datlists[[m]], nrow)  # number features per modality
     if (!(length(unique(p)) == 1)) {
-      stop(paste("Modality", datlists[[m]], "has inconsistent feature counts across subjects"))
+      stop(paste("Modality", names(datlists)[m], "has inconsistent feature counts across subjects"))
     }
   }
 
   # STEP 1: Initialize subject and feature loadings per modality
-  ## (a) Subject loadings init'd with equal contribution
+  ## (i) Subject loadings init'd with equal contribution
   a <- rep(1/sqrt(n), times = n)
 
-  ## (b) Feature loadings init'd as matrix of leftmost singular vectors of SVD
+  ## (ii) Feature loadings init'd as matrix of leftmost singular vectors of SVD
   b <- vector("list", length = M)
   for (m in 1:M) {
     b[m] <- init_b(datlists[[m]], p[[m]])
@@ -43,19 +44,25 @@ multi_tempted <- function(datlists, r=3) {
   # Calculate each component and remove contribution from feature values
   for (l in 1:r) {
     # STEP 2: Sequentially estimate loadings
-    ## (a) Time loadings
+    ## (i) Time loadings
+    update_zeta()
 
+    ## (ii) Subject loadings
+    update_a()
 
-    ## (b) Subject loadings
-
-
-    ## (c) Feature loadings
+    ## (iii) Feature loadings
+    update_b()
 
     # STEP 3: Remove contribution of current component & repeat steps 1-2 for all components
+    svd_centralize()
   }
 
   # STEP 4: Estimate modality-specific scales
 }
+
+
+# HELPER FUNCTIONS
+
 
 init_b <- function(datlist, p) {
   # 1. Matrication of datalist
@@ -65,13 +72,19 @@ init_b <- function(datlist, p) {
 }
 
 update_zeta <- function() {  # updates modality-specific time loadings
-  # Kernel ridge regression code
+  # Kernel ridge regression code (RKHS penalty term)
 }
 
 update_a <- function() {  # updates cross-modality shared subject loading
-
+  # 1. formula for updating a
+  # 2. scale a by inverse norm of a
 }
 
 update_b <- function() {  # updates feature loadings
+  # 1. formula for updating b
+  # 2. scale b by inverse norm of b
+}
+
+svd_centralize <- function() {
 
 }
