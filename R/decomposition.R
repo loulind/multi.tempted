@@ -37,9 +37,7 @@ multi_tempted_decomp <- function(datlists, r=3) {
 
   ## (ii) Feature loadings init'd as matrix of leftmost singular vectors of SVD
   b <- vector("list", length = M)
-  for (m in 1:M) {
-    b[m] <- init_b(datlists[[m]], p[[m]])
-  }
+  init_b(datlists, b, p)
 
   # Calculate each component and remove contribution from feature values
   for (l in 1:r) {
@@ -53,22 +51,35 @@ multi_tempted_decomp <- function(datlists, r=3) {
     ## (iii) Feature loadings
     update_b()
 
-    # STEP 3: Remove contribution of current component & repeat steps 1-2 for all components
-    svd_centralize()
+    # STEP 3: Remove contribution of current component; repeat steps 1-2 for all r components
+    centralize()
   }
 
   # STEP 4: Estimate modality-specific scales
 }
 
 
+
+
+
 # HELPER FUNCTIONS
 
-
-init_b <- function(datlist, p) {
-  # 1. Matrication of datalist
-  # 2. Perform SVD
-  # 3. Extract leftmost singular vector
+#' Initialize feature loading's vector, b
+#'
+#' @param datlist
+#' @param p
+#'
+#' @returns
+#' @export
+#'
+#' @noRd
+init_b <- function(datlists, b, M, p) {
+  for (m in 1:length(datlists)) {
+    # 1. Matrication of datalist
+    # 2. Perform SVD
+    # 3. Extract leftmost singular vector
   return(leftmost_sv)
+  }
 }
 
 update_zeta <- function() {  # updates modality-specific time loadings
