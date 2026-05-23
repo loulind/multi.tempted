@@ -2,11 +2,17 @@
 #' @description
 #' Formats and performs full analysis from input dataset
 #'
-#' @param name description
+#' @param
 #'
 #' @returns
 #' @export
 #'
 #' @examples
 #'
+multiTEMPTED <- function(featuretables, timepoints, subjID) {
 
+  datlists <- format_multitempted(featuretables, timepoints, subjID)
+  decomp <- multi_tempted_decomp(datlists)
+  # outputs list containing all pertinent output
+
+}
