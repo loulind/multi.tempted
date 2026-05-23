@@ -1,18 +1,23 @@
 Package: multi.tempted
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Dimensionality Reduction of Longitudinal Multiomic Data
 Version: 0.1.0
 Depends: R (>= 4.5.3), np (>= 0.60-17), ggplot2 (>= 3.4.0), methods (>= 4.2.1)
 Authors@R: c(
     person(
-      "Jane", "Doe",
-      email = "jane@example.com",
+      "Lou", "Lindsley",
+      email = "4loubird@gmail.com",
+      role = c("aut", "cre")
+    ),
+    person(
+      "Pixu", "Shi",
+      email = "4loubird@gmail.com",
       role = c("aut", "cre")
     )
   )
 Description: More about what it does (maybe more than one line).
     Continuation lines should be indented.
-License: What license is it under?
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Imports:
