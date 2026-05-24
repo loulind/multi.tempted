@@ -24,23 +24,27 @@ multi_tempted_decomp <- function(datlists, r=3) {
 
   M <- length(datlists)  # number modalities
   n <- length(datlists[[1]])  # number subjects
-  for (m in 1:M) {
+  for (m in names(datlists)) {
     p <- sapply(datlists[[m]], nrow)  # number features per modality
     if (!(length(unique(p)) == 1)) {
-      stop(paste("Modality", names(datlists)[m], "has inconsistent feature counts across subjects"))
+      stop(paste("Modality", m, "has inconsistent feature counts across subjects"))
     }
   }
 
-  # STEP 1: Initialize subject and feature loadings per modality
-  ## (i) Subject loadings init'd with equal contribution
-  a <- rep(1/sqrt(n), times = n)
-
-  ## (ii) Feature loadings init'd as matrix of leftmost singular vectors of SVD
-  b <- vector("list", length = M)
-  init_b(datlists, b, p)
+  # Calculate time interval and scale to 0,1
 
   # Calculate each component and remove contribution from feature values
   for (l in 1:r) {
+    message(sprintf("Calculate the %dth Component", l))
+
+    # STEP 1: Initialize subject and feature loadings per modality
+    ## (i) Subject loadings, a, init'd with equal contribution
+    a <- rep(1/sqrt(n), times = n)
+
+    ## (ii) Feature loadings, b, init'd as matrix of leftmost singular vectors of SVD
+    b <- vector("list", length = M)
+    init_b(datlists, b, M, p)
+
     # STEP 2: Sequentially estimate loadings
     ## (i) Time loadings
     update_zeta()
@@ -66,20 +70,24 @@ multi_tempted_decomp <- function(datlists, r=3) {
 
 #' Initialize feature loading's vector, b
 #'
-#' @param datlist
-#' @param p
+#' @param datlists Length M named list of length n lists of matrices.
+#' @param M number total modalities
+#' @param b list of M length p_m vectors
+#' @param p length M vector containing number of features, p_m, for modality m
+#' @returns list of M length p_m vectors
 #'
-#' @returns
-#' @export
-#'
-#' @noRd
-init_b <- function(datlists, b, M, p) {
-  for (m in 1:length(datlists)) {
-    # 1. Matrication of datalist
-    # 2. Perform SVD
-    # 3. Extract leftmost singular vector
-  return(leftmost_sv)
+#' @noRd No user-side documentation
+init_b <- function(datlists, M, b, p) {
+  b_hat <- vector(mode = "list", length = M)
+  for (m in 1:M) {
+    data_unfold <- NULL
+    for (i in 1:n) {
+      data_unfold = cbind(data_unfold, datlists[[m]][[i]][2:(p+1),])
+    }
+    b.intitials <- svd(data_unfold, nu=r, nv=r)$u
+    b_hat[[m]] <- b.intitials[,1]
   }
+  return(b_hat)
 }
 
 update_zeta <- function() {  # updates modality-specific time loadings
