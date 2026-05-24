@@ -13,6 +13,7 @@ multiTEMPTED <- function(featuretables, timepoints, subjID) {
 
   datlists <- format_multitempted(featuretables, timepoints, subjID)
   decomp <- multi_tempted_decomp(datlists)
+  # odds ratio thing?
   # outputs list containing all pertinent output
 
 }
