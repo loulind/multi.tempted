@@ -7,12 +7,10 @@ Authors@R: c(
     person(
       "Lou", "Lindsley",
       email = "4loubird@gmail.com",
-      role = c("aut", "cre")
     ),
     person(
       "Pixu", "Shi",
-      email = "4loubird@gmail.com",
-      role = c("aut", "cre")
+      email = "pixu.shi@duke.edu",
     )
   )
 Description: More about what it does (maybe more than one line).
@@ -20,6 +18,6 @@ Description: More about what it does (maybe more than one line).
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
-Imports:
+Imports: 
 LinkingTo: 
 Config/roxygen2/version: 8.0.0
