@@ -83,9 +83,9 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
       message(sprintf("...modality %d", m))
       while(t<=maxiter & dif>epsilon){
         ## (i) Time-varying function, Zeta
-        Ly <- list()
-        for (i in 1:n){
-          Ly <- c(Ly, list(a_hat[i]*as.numeric(b_hat[[m]]%*%datlists[[m]][[i]][2:(p+1),])))
+        #Ly <- list()
+        #for (i in 1:n){
+        #  Ly <- c(Ly, list(a_hat[i]*as.numeric(b_hat[[m]]%*%datlists[[m]][[i]][2:(p+1),])))
         }
         zeta_hat <- update_zeta(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth=smooth)
         zeta_hat <- zeta_hat / sqrt(sum(zeta_hat^2))
