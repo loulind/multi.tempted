@@ -3,33 +3,24 @@
 #' CP-type decomposition of multiple 3d tensors.
 #' Each tensor represents a different modality (subject x feature x time).
 #' Performed after formatting data!
-#'
 #' @param datlists A length M named list of length n lists of matrices.
 #' Each named list element represents a modality.
 #' Each matrix represents a subject. Columns represent sample number.
 #' The first rows represent sampling time points.
 #' Row 2 through row (number features in modality m) + 1 represent feature values
-#'
 #' @param r Number components to decompose the M 3d tensors
 #' (ie, rank of CP-type decomposition). Default is r=3.
-#'
 #' @param smooth Smoothing parameter for RKHS norm.
 #' Larger ==> smoother temporal loading functions. Default is 1e-8.
 #' To adjust, check the smoothness of the estimated temporal loading function plot.
-#'
 #' @param interval The range of time points to run the decomposition for.
 #' Default is set to be the range of all observed time points.
 #' User can set it to be a shorter interval than the observed range.
-#'
 #' @param resolution Number of time points to evaluate the value of the temporal loading function.
 #' Default is set to 101. It does not affect the subject or feature loadings.
-#'
 #' @param maxiter Maximum number of iteration. Default is 20.
-#'
 #' @param epsilon Convergence criteria for difference between iterations. Default is 1e-4.
-#'
 #' @return The estimations of the loadings for each modality.
-#'
 #' \describe{
 #'   \item{A_hat}{Subject loading, a subject by r matrix.}
 #'   \item{B_hat}{Feature loading, a feature by r matrix.}
@@ -40,9 +31,7 @@
 #'   \item{accum_r_square}{Variance explained by the first few components accumulated. This is the R-squared of the linear regression of the vectorized temporal tensor against the vectorized low-rank reconstruction using the first few components.}
 #' }
 #' @export
-#'
 #' @examples
-#'
 multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
                                  resolution = 101, maxiter=20, epsilon=1e-4) {
   if (!(length(unique(lengths(datlists))) == 1)) {
