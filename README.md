@@ -16,9 +16,12 @@ docker run \
   multi.tempted
 ```
 
-Then in containerized R-studio session,. USER: rstudio, PS: 123 . open
-File \> Open Project then select multi.tempted.Rproj (adds git tab).
-once opened, run…
+Then in containerized R-studio session:
+
+1.  USER: rstudio, PS: 123
+2.  open File \> Open Project then select multi.tempted.Rproj (adds git
+    tab)
+3.  once opened, run…
 
 ``` r
 setwd('~/work')
