@@ -12,6 +12,7 @@
 multiTEMPTED <- function(featuretables, timepoints, subjID) {
 
   datlists <- format_multitempted(featuretables, timepoints, subjID)
+  # svd centralize (option to remove constant time function from data if interested in time varying element)
   decomp <- multi_tempted_decomp(datlists)
   # odds ratio thing?
   # outputs list containing all pertinent output
