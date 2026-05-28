@@ -137,7 +137,7 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
       }
 
       # STEP 3: Remove contribution of current component; repeat steps 1-2 for all r components
-      centralize()
+      remove_component()
     }
 
   # STEP 4: Estimate modality-specific scales, lambda
@@ -218,7 +218,7 @@ update_b <- function() {  # updates feature loadings
 
 }
 
-centralize <- function() {
+remove_component <- function() {
 }
 
 calc_lambda <- function() {
