@@ -35,7 +35,7 @@
 multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
                                  resolution = 101, maxiter=20, epsilon=1e-4) {
   if (!(length(unique(lengths(datlists))) == 1)) {
-    stop("Unequal number of subjects across modality")
+    stop("Unequal number of subjects across modalities")
   }
 
   # Initialize intermediate variables
@@ -43,61 +43,68 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   n <- length(datlists[[1]])  # number subjects
   A <- matrix(0, nrow = n, ncol = r) # subject loading components
   B <- vector(mode = "list", length = M) # feature loading components
-  p <- vector(mode = "numeric", length = M)
+  p <- vector(mode = "numeric", length = M) # number features per modality
+
+  ti <- lapply(1:M, function(m) lapply(1:n, function(x) vector()))  # M lists containing subject timepoint indices
+  tipos <- lapply(1:M, function(m) lapply(1:n, function(x) vector()))  # M lists of whether timepoints falls in range
+  Kmat <- list() # list of matrices to calc Bernoulli kernel between all observed time points
+  Kmat_output <- list() # list of matrices to calc Bernoulli kernel between resolution grid and actual observed time points
+
+  Lambda <- replicate(M, numeric(r), simplify = FALSE)  # modality-specific scalings
+  X <- NULL  # design matrix
+  y0 <- vector(mode = "list", length=M)  #flattened feature data
+  Rsq <- accumRsq <- rep(0, r)
+
   for (m in 1:M) {
     p[m] <- sapply(datlists[[m]], nrow) - 1  # number of features per modality
     if (!(length(unique(p)) == 1)) {
       stop(paste0("Modality '", names(datlists)[m], "' has inconsistent feature counts across subjects"))
     }
     B[[m]] <- matrix(0, p[m], r)
+
+    # Calculate range for each subject in each modality
+    timestamps_all <- vector(mode = "list", length = M)
+    interval <- vector(mode = "list", length = M)
+    timestamps_all[[m]] <- do.call(c,lapply(datlists[[m]], FUN=function(u){u[1,]}))  # extracts time point row into vector
+    timestamps_all[[m]] <- sort(unique(timestamps_all[[m]]))  #
+
+    if (is.null(interval)){ # initializes interval as 1st timepoint to last if not specified
+      interval[[m]] <- c(timestamps_all[[m]][1], timestamps_all[[m]][length(timestamps_all[[m]])])
+    }
+
+    # Rescale time to 0-1
+    input_time_range <- c(timestamps_all[[m]][1], timestamps_all[[m]][length(timestamps_all[[m]])])
+    for (i in 1:n) {
+      datlists[[m]][[i]][1,] <- (datlists[[m]][[i]][1,] - input_time_range[[m]][1]) / (input_time_range[[m]][2] - input_time_range[[m]][1])
+    }
+    interval[[m]] <- (interval[[m]] - input_time_range[[m]][1]) / (input_time_range[[m]][2] - input_time_range[[m]][1])
+
+    # Binning continuous time to a discrete grid (based on interval and resolution)
+    for (i in 1:n) {
+      temp <- 1 + round((resolution-1) * (datlists[[m]][[i]][1,] - interval[[m]][1]) / (interval[[m]][2] - interval[[m]][1]))
+      temp[which(temp<=0 | temp>resolution)] <- 0
+      ti[[m]][[i]] <- temp  # subject i's timepoint
+    }
+
+    # Flattening out feature data into long vector
+    for (i in 1:n){
+      keep <- ti[[m]]][[i]]>0
+      tipos[[m]][[i]] <- keep
+      y0[[m]] <- c(y0[[m]], as.vector(t(datlists[[m]][[i]][2:(p+1),keep])))
+    }
+
+    # creates long vector of timepoints for calculating bernoulli kernel from all timepoints
+    Lt <- list()
+    ind_vec <- NULL
+    for (i in 1:n){
+      Lt <- c(Lt, list(datlist[[i]][1,]))
+      ind_vec <- c(ind_vec, rep(i,length(Lt[[i]])))
+    }
+
+    tm <- unlist(Lt)
+    Kmat[[m]] <- bernoulli_kernel(tm, tm)
+    Kmat_output[[m]] <- bernoulli_kernel(seq(interval[1],interval[2],length.out = resolution), tm)
   }
-
-  # Calculate range
-  # timestamps_all <- do.call(c,lapply(datlist, FUN=function(u){u[1,]}))
-  #
-  # timestamps_all <- sort(unique(timestamps_all))
-  # if (is.null(interval)){
-  #   interval <- c(timestamps_all[1], timestamps_all[length(timestamps_all)])
-  # }
-
-  # Rescale time to 0-1
-  # input_time_range <- c(timestamps_all[1], timestamps_all[length(timestamps_all)])
-  # for (i in 1:n){
-  #   datlist[[i]][1,] <- (datlist[[i]][1,] - input_time_range[1]) / (input_time_range[2] - input_time_range[1])
-  # }
-  # interval <- (interval - input_time_range[1]) / (input_time_range[2] - input_time_range[1])
-  #
-  # res <- NULL
-  # Lambda <- rep(0, r)
-  # X <- NULL
-  # y0 <- NULL
-  # Rsq <- accumRsq <- rep(0, r)
-  #
-  # ti <- vector(mode='list', length=n)
-  # for (i in 1:n){
-  #   temp <- 1 + round((resolution-1) * (datlist[[i]][1,] - interval[1]) / (interval[2] - interval[1]))
-  #   temp[which(temp<=0 | temp>resolution)] <- 0
-  #   ti[[i]] <- temp
-  # }
-  #
-  # tipos <- vector(mode='list', length=n)
-  # for (i in 1:n){
-  #   keep <- ti[[i]]>0
-  #   tipos[[i]] <- keep
-  #   y0 <- c(y0, as.vector(t(datlist[[i]][2:(p+1),keep])))
-  # }
-  #
-  # Lt <- list()
-  # ind_vec <- NULL
-  # for (i in 1:n){
-  #   Lt <- c(Lt, list(datlist[[i]][1,]))
-  #   ind_vec <- c(ind_vec, rep(i,length(Lt[[i]])))
-  # }
-  #
-  # tm <- unlist(Lt)
-  # Kmat <- bernoulli_kernel(tm, tm)
-  # Kmat_output <- bernoulli_kernel(seq(interval[1],interval[2],length.out = resolution), tm)
-  #
 
   # Calculate each component and remove contribution from feature values
   for (l in 1:r) {
@@ -151,6 +158,9 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
 
 
 # HELPER FUNCTIONS
+
+init_time <- function(datlists)
+
 
 #' Initialize feature loading's vector using SVD of mode-2-matricized tensor
 #'
