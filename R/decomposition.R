@@ -21,15 +21,6 @@
 #' @param maxiter Maximum number of iteration. Default is 20.
 #' @param epsilon Convergence criteria for difference between iterations. Default is 1e-4.
 #' @return The estimations of the loadings for each modality.
-#' \describe{
-#'   \item{A_hat}{Subject loading, a subject by r matrix.}
-#'   \item{B_hat}{Feature loading, a feature by r matrix.}
-#'   \item{Phi_hat}{Temporal loading function, a resolution by r matrix.}
-#'   \item{time_Phi}{The time points where the temporal loading function is evaluated.}
-#'   \item{Lambda}{Eigenvalue, a length r vector.}
-#'   \item{r_square}{Variance explained by each component. This is the R-squared of the linear regression of the vectorized temporal tensor against the vectorized low-rank reconstruction using individual components.}
-#'   \item{accum_r_square}{Variance explained by the first few components accumulated. This is the R-squared of the linear regression of the vectorized temporal tensor against the vectorized low-rank reconstruction using the first few components.}
-#' }
 #' @export
 #' @examples
 multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
@@ -110,6 +101,7 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   for (l in 1:r) {
     message(sprintf("Calculating Component %d", l))
 
+    # SEQUENTIAL ESTIMATION ALGORITHM
     # STEP 1: Initialize subject and feature loadings per modality
     ## (i) Subject loadings, a, initially set to equal contribution
     a_hat <- rep(1/sqrt(n), n)
@@ -137,15 +129,42 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
       }
 
       # STEP 3: Remove contribution of current component; repeat steps 1-2 for all r components
-      remove_component()
+      update_datlists()
     }
 
   # STEP 4: Estimate modality-specific scales, lambda
     calc_lambda()
   }
-  # update datlists?
-  # revise signs of estimates to make sure summation nonnegative?
 
+
+  for (r in 1:length(Lambda[[m]])){
+    for (m in 1:M) {
+      # revise the sign of Lambdas
+      if (Lambda[[m]][r]<0){
+        Lambda[[m]][r] <- -Lambda[[m]][r]
+        A[,r] <- -A[,r]
+      }
+
+      # revise the signs to make sure summation of zeta is nonnegative
+      sgn.zeta <- sign(colSums(Zeta[[m]]))
+      sgn.zeta[sgn.zeta==0] <- 1
+      for (r in 1:ncol(Phi)){
+        Zeta[[m]][,r] <- sgn.phi[r]*Zeta[[m]][,r]
+        A[,r] <- sgn.zeta[r]*A[,r]
+      }
+
+      # revise the signs to make sure summation of B is nonnegative
+      sgn.B <- sign(colSums(B[[m]]))
+      sgn.B[sgn.B==0] <- 1
+      for (r in 1:ncol(Phi)){
+        B[[m]][,r] <- sgn.B[r]*B[[m]][,r]
+        A[,r] <- sgn.B[r]*A[,r]
+      }
+    }
+  }
+
+  time_return <- seq(interval[1],interval[2],length.out = resolution)
+  time_return <- time_return * (input_time_range[2] - input_time_range[1]) + input_time_range[1]
   results <- list("A_hat" = A, "B_hat" = B,
                   "Zeta_hat" = Zeta, "time_Phi" = time_return,
                   "Lambda" = Lambda, "r_square" = Rsq, "accum_r_square" = accumRsq)
@@ -159,7 +178,9 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
 
 # HELPER FUNCTIONS
 
-init_time <- function(datlists)
+init_time <- function(datlists) {
+
+}
 
 
 #' Initialize feature loading's vector using SVD of mode-2-matricized tensor
@@ -182,12 +203,12 @@ init_b <- function(datlists, m, b_hat, p) {
 
 update_zeta <- function() {  # updates modality-specific time loadings
   # Kernel ridge regression code (RKHS penalty term)
-  # Ly <- list()
-  # for (i in 1:n){
-  #   Ly <- c(Ly, list(a_hat[i]*as.numeric(b_hat%*%datlist[[i]][2:(p+1),])))
-  # }
-  # phi_hat <- freg_rkhs(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth=smooth)
-  # phi_hat <- phi_hat / sqrt(sum(phi_hat^2))
+  Ly <- list()
+  for (i in 1:n){
+    Ly <- c(Ly, list(a_hat[i]*as.numeric(b_hat%*%datlist[[i]][2:(p+1),])))
+  }
+  phi_hat <- freg_rkhs(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth=smooth)
+  phi_hat <- phi_hat / sqrt(sum(phi_hat^2))
 
   # Normalize
   zeta_hat <- zeta_hat / sqrt(sum(zeta_hat^2))
@@ -196,33 +217,55 @@ update_zeta <- function() {  # updates modality-specific time loadings
 
 
 update_a <- function() {  # updates cross-modality shared subject loading
-  # 1. formula for updating a
-  # 2. scale a by inverse norm of a
-  # a_tilde <- rep(0,n)
-  # for (i in 1:n){
-  #   t_temp <- tipos[[i]]
-  #   a_tilde[i] <- b_hat %*% datlist[[i]][2:(p+1),t_temp] %*% phi_hat[ti[[i]][t_temp]]
-  #   a_tilde[i] <- a_tilde[i] / sum((phi_hat[ti[[i]][t_temp]])^2)
-  # }
+  # update b
+  a_tilde <- rep(0,n)
+  for (i in 1:n){
+    t_temp <- tipos[[i]]
+    a_tilde[i] <- b_hat %*% datlist[[i]][2:(p+1),t_temp] %*% phi_hat[ti[[i]][t_temp]]
+    a_tilde[i] <- a_tilde[i] / sum((phi_hat[ti[[i]][t_temp]])^2)
+  }
 
   # Normalize and calculate dif
-  # a.new <- a_tilde / sqrt(sum(a_tilde^2))
-  # dif <- sum((a_hat - a.new)^2)
-  # a_hat <- a.new
+  a.new <- a_tilde / sqrt(sum(a_tilde^2))
+  dif <- sum((a_hat - a.new)^2)
+  a_hat <- a.new
 }
 
 update_b <- function() {  # updates feature loadings
-  # 1. formula for updating b
-  # 2. scale b by inverse norm of b
+  temp_num <- matrix(0,p,n)
+  temp_denom <- rep(0,n)
+  for (i in 1:n){
+    t_temp <- tipos[[i]]
+    temp_num[,i] <- datlist[[i]][2:(p+1),t_temp] %*% phi_hat[ti[[i]][t_temp]]
+    temp_denom[i] <-sum((phi_hat[ti[[i]][t_temp]])^2)
+  }
+  b_tilde <- as.numeric(temp_num%*%a_hat) / as.numeric(temp_denom%*%(a_hat^2))
+  b.new <- b_tilde / sqrt(sum(b_tilde^2))
+  dif <- max(dif, sum((b_hat - b.new)^2))
+  b_hat <- b.new
 
 
 }
 
-remove_component <- function() {
+update_datlists <- function() {
 }
 
 calc_lambda <- function() {
-
+  x <- NULL
+  for (i in 1:n){
+    t_temp <- ti[[i]]
+    t_temp <- t_temp[t_temp>0]
+    x <- c(x,as.vector(t(a_hat[i]*b_hat%o%phi_hat[t_temp])))
+  }
+  X <- cbind(X, x)
+  lm_fit <- lm(y~x-1)
+  lambda <- as.numeric(lm_fit$coefficients)
+  A[,s] <- a_hat
+  B[,s] <- b_hat
+  Phi[,s] <- t(phi_hat)
+  Lambda[s] <- lambda
+  Rsq[s] <- summary(lm_fit)$r.squared
+  accumRsq[s] <- summary(lm(y0~X-1))$r.squared
 }
 
 #' Functional Regression with RKHS penalty term
@@ -238,16 +281,30 @@ calc_lambda <- function() {
 #'
 #' @noRd No user-side documentation
 freg_rkhs <- function(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth=1e-8){
-  # A <- Kmat
-  # for (i in 1:length(Ly)){
-  #   A[ind_vec==i,] <- A[ind_vec==i,]*a_hat[i]^2
-  # }
-  # cvec <- unlist(Ly)
-  #
-  # A_temp <- A + smooth*diag(ncol(A))
-  # beta <- solve(A_temp)%*%cvec
-  #
-  # zeta_est <- Kmat_output %*% beta
-  # return(zeta_est)
+  A <- Kmat
+  for (i in 1:length(Ly)){
+    A[ind_vec==i,] <- A[ind_vec==i,]*a_hat[i]^2
+  }
+  cvec <- unlist(Ly)
+
+  A_temp <- A + smooth*diag(ncol(A))
+  beta <- solve(A_temp)%*%cvec
+
+  zeta_est <- Kmat_output %*% beta
+  return(zeta_est)
 }
 
+bernoulli_kernel <- function(x, y){
+  k1_x <- x-0.5
+  k1_y <- y-0.5
+  k2_x <- 0.5*(k1_x^2-1/12)
+  k2_y <- 0.5*(k1_y^2-1/12)
+  xy <- abs(x %*% t(rep(1,length(y))) - rep(1,length(x)) %*% t(y))
+  k4_xy <- 1/24 * ((xy-0.5)^4 - 0.5*(xy-0.5)^2 + 7/240)
+  kern_xy <- k1_x %*% t(k1_y) + k2_x %*% t(k2_y) - k4_xy + 1
+  return(kern_xy)
+}
+
+revise_signs <- function() {
+
+}
