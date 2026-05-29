@@ -147,7 +147,7 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
       dif <- sum((a_hat - a_new)^2)
       a_hat <- a_new
 
-      # (c) Feature loading: update b for each modality independently.
+      # (c) Feature loading: update b for each modality independently
       for (m in 1:M) {
         b_new <- update_b(datlists[[m]], p[m], zeta_hats[[m]],
                                 prep[[m]]$tipos, prep[[m]]$ti, a_hat, n)
@@ -158,13 +158,32 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
     }
     message(sprintf("  Converged: dif = %.2e after %d iterations", dif, iter))
 
-      # STEP 3: Remove contribution of current component; repeat steps 1-2 for all r components
-      update_datlists()
+    # STEP 3: Store loadings and estimate modality-specific scales (lambda)
+    A[, l] <- a_hat # record estimated a for component l
+    x_comp <- NULL  # rank-1 reconstruction vectorized across all modalities
+    for (m in 1:M) {
+      B[[m]][, l] <- b_hats[[m]]  # record estimated b for component l
+      Zeta[[m]][, l] <- zeta_hats[[m]]  # record estimated zeta for component l
+
+      lm_result <- compute_lambda(y_resid[[m]], datlists[[m]], p[m],
+                                     a_hat, b_hats[[m]], zeta_hats[[m]],
+                                     prep[[m]]$tipos, prep[[m]]$ti, n)
+      Lambda[m, l] <- lm_result$lambda # update lambda
+      x_comp <- c(x_comp, lm_result$x_m)
     }
 
-  # STEP 4: Estimate modality-specific scales, lambda
-    calc_lambda()
+    # R-squared for this component and accumulated total (pooled across modalities)
+    Rsq[l]      <- compute_rsq(unlist(y_resid), x_comp)
+    X_accum     <- cbind(X_accum, x_comp)
+    accumRsq[l] <- compute_rsq(y0_all, X_accum)
 
+    # STEP 4: Subtract l'th component from datlists
+    for (m in 1:M) {
+      datlists[[m]] <- update_datlist(datlists[[m]], p[m], a_hat, b_hats[[m]],
+                                       zeta_hats[[m]], Lambda[m, l],
+                                       prep[[m]]$tipos, prep[[m]]$ti, n)
+    }
+  }
 
   for (r in 1:length(Lambda[[m]])){
     for (m in 1:M) {
