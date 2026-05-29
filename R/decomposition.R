@@ -188,39 +188,29 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   # STEP 4: After est'm all r components, re-est'm modality scales
   Lambda <- reestimate_lambda(y0_per_modality, A, B, Zeta, prep, p, M, n, r)
 
+  # Revise signs so results are comparable (no sign switching)
+  signs  <- revise_signs(A, B, Zeta, Lambda, r, M)
+  A <- signs$A
+  B <- signs$B
+  Zeta <- signs$Zeta
+  Lambda <- signs$Lambda
 
-  # for (r in 1:length(Lambda[[m]])){
-  #   for (m in 1:M) {
-  #     # revise the sign of Lambdas
-  #     if (Lambda[[m]][r]<0){
-  #       Lambda[[m]][r] <- -Lambda[[m]][r]
-  #       A[,r] <- -A[,r]
-  #     }
-  #
-  #     # revise the signs to make sure summation of zeta is nonnegative
-  #     sgn.zeta <- sign(colSums(Zeta[[m]]))
-  #     sgn.zeta[sgn.zeta==0] <- 1
-  #     for (r in 1:ncol(Phi)){
-  #       Zeta[[m]][,r] <- sgn.phi[r]*Zeta[[m]][,r]
-  #       A[,r] <- sgn.zeta[r]*A[,r]
-  #     }
-  #
-  #     # revise the signs to make sure summation of B is nonnegative
-  #     sgn.B <- sign(colSums(B[[m]]))
-  #     sgn.B[sgn.B==0] <- 1
-  #     for (r in 1:ncol(Phi)){
-  #       B[[m]][,r] <- sgn.B[r]*B[[m]][,r]
-  #       A[,r] <- sgn.B[r]*A[,r]
-  #     }
-  #   }
-  # }
+  # Re-map time intervals back to original time scales
+  time_Zeta <- lapply(1:M, function(m) {
+    grid <- seq(prep[[m]]$interval[1], prep[[m]]$interval[2], length.out = resolution)
+    grid * (prep[[m]]$input_time_range[2] - prep[[m]]$input_time_range[1]) +
+      prep[[m]]$input_time_range[1]
+  })
+  names(time_Zeta) <- names(datlists)
 
-  time_return <- seq(interval[1],interval[2],length.out = resolution)
-  time_return <- time_return * (input_time_range[2] - input_time_range[1]) + input_time_range[1]
-  results <- list("A_hat" = A, "B_hat" = B,
-                  "Zeta_hat" = Zeta, "time_Phi" = time_return,
-                  "Lambda" = Lambda, "r_square" = Rsq, "accum_r_square" = accumRsq)
-  return(results)
+  return(list(
+    A_hat = A,
+    B_hat = B,
+    Zeta_hat = Zeta,
+    time_Zeta = time_Zeta,
+    Lambda = Lambda,
+    r_square = Rsq,
+    accum_r_square = accumRsq))
 }
 
 
