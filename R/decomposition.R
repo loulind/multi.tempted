@@ -1,8 +1,9 @@
 #' @title Decomposition of temporal tensors across multiple modalities
 #' @description
-#' CP-type decomposition of M subject-x-feature-x-time tensors.
+#' CP-type decomposition of M subject-by-feature-by-time tensors.
 #' Each tensor ("modality") shares a subject loading with all others.
-#' Run after formatting data with `format_multitempted()`.
+#' Run after formatting data with `format_multitempted()` &
+#' after `svd_centralize` if centralize option is selected.
 #' @param datlists A length-M named list of length-n lists of matrices.
 #'   Each matrix is one subject: row 1 is sampling times, rows 2..p+1 are features.
 #' @param r Number of components (rank). Default 3.
@@ -27,8 +28,8 @@
 #' @md
 multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
                                  resolution = 101, maxiter=20, epsilon=1e-4) {
-  if (!(length(unique(lengths(datlists))) == 1)) {
-    stop("Unequal number of subjects across modalities")
+  if (length(unique(lengths(datlists))) != 1) {
+    stop("All modalities must have the same number of subjects.")
   }
 
   # Initialize intermediate variables
@@ -36,7 +37,14 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   n <- length(datlists[[1]])  # number subjects
   A <- matrix(0, nrow = n, ncol = r) # subject loading components
   B <- vector(mode = "list", length = M) # feature loading components
-  p <- vector(mode = "numeric", length = M) # number features per modality
+  p <- sapply(seq_len(M), function(m) { # list of features per modality
+    pm_vals <- sapply(datlists[[m]], nrow) - 1
+    if (length(unique(pm_vals)) != 1) {
+      stop(sprintf("Modality '%s' has inconsistent feature counts across subjects.",
+                   names(datlists)[m]))
+    }
+    pm_vals[[1]]
+  })
 
   ti <- lapply(1:M, function(m) lapply(1:n, function(x) vector()))  # M lists containing subject timepoint indices
   tipos <- lapply(1:M, function(m) lapply(1:n, function(x) vector()))  # M lists of whether timepoints falls in range
