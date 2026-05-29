@@ -119,36 +119,44 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   #   Kmat_output[[m]] <- bernoulli_kernel(seq(interval[1],interval[2],length.out = resolution), tm)
   # }
 
-  # Calculate each component and remove contribution from feature values
+  # SEQUENTIAL ESTIMATION ALGORITHM
   for (l in 1:r) {
-    message(sprintf("Calculating Component %d", l))
+    message(sprintf("Estimating component %d of %d", l, r))
 
-    # SEQUENTIAL ESTIMATION ALGORITHM
-    # STEP 1: Initialize subject and feature loadings per modality
-    ## (i) Subject loadings, a, initially set to equal contribution
-    a_hat <- rep(1/sqrt(n), n)
+    # Current residual data (after subtracting components 1..l-1), for this
+    # component l's lambda regression and R-squared calc
+    y_resid <- lapply(1:M, function(m)
+      flatten_features(datlists[[m]], p[m], prep[[m]]$tipos))
 
-    for (m in 1:M) {
-      message(sprintf("...modality '%s'", names(datlists)[m]))
+    # STEP 1: Initialize subject and feature loadings
+    a_hat  <- rep(1 / sqrt(n), n) # Subject loadings init'd to equal contribution
+    b_hats <- lapply(1:M, function(m) # init'd as list of matrices of leftmost singular vectors of SVD
+      init_b_hat(datlists[[m]], p[m], n))
 
-      ## (ii) Feature loadings, b, init'd as list of matrices of leftmost singular vectors of SVD
-      b_hat <- init_b(datlists, m, p[m])
+    # STEP 2: Update a, b, and zeta until max iterations reached or it converges
+    iter <- 0
+    dif  <- 1
+    while (iter <= maxiter && dif > epsilon) {
+      # (a) Temporal loading: update zeta for each modality independently
+      zeta_hats <- lapply(1:M, function(m)
+        update_zeta(datlists[[m]], p[m], b_hats[[m]], a_hat, prep[[m]]$ind_vec,
+                    prep[[m]]$Kmat, prep[[m]]$Kmat_output, smooth))
 
-      # STEP 2: Update a, b, and zeta until max iterations reached or it converges
-      t <- 0
-      dif <- 1
-      while(t<=maxiter & dif>epsilon){
-        ## (i) Update time-varying function, zeta
-        zeta_hat <- update_zeta(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth=smooth)
+      # (b) Subject loading: update shared a_hat across modalities
+      a_new <- update_a(datlists, p, b_hats, zeta_hats, prep, n, M)
+      dif <- sum((a_hat - a_new)^2)
+      a_hat <- a_new
 
-        ## (ii) Update subject loadings
-        a_hat <- update_a()
-
-        ## (iii) Update feature loadings
-        b_hat <- update_b()
-
-        t <- t+1
+      # (c) Feature loading: update b for each modality independently.
+      for (m in 1:M) {
+        b_new <- update_b(datlists[[m]], p[m], zeta_hats[[m]],
+                                prep[[m]]$tipos, prep[[m]]$ti, a_hat, n)
+        dif <- max(dif, sum((b_hats[[m]] - b_new)^2))
+        b_hats[[m]] <- b_new
       }
+      iter <- iter + 1
+    }
+    message(sprintf("  Converged: dif = %.2e after %d iterations", dif, iter))
 
       # STEP 3: Remove contribution of current component; repeat steps 1-2 for all r components
       update_datlists()
@@ -156,7 +164,6 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
 
   # STEP 4: Estimate modality-specific scales, lambda
     calc_lambda()
-  }
 
 
   for (r in 1:length(Lambda[[m]])){
