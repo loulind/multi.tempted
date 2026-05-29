@@ -159,7 +159,8 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
     time_Zeta = time_Zeta,
     Lambda = Lambda,
     r_square = Rsq,
-    accum_r_square = accumRsq))
+    accum_r_square = accumRsq
+    ))
 }
 
 
@@ -167,97 +168,68 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
 
 
 
-# HELPER FUNCTIONS
+# ----------------- HELPER FUNCTIONS ------------------
 
-init_time <- function(datlists) {
-
-}
-
-
-#' Initialize feature loading's vector using SVD of mode-2-matricized tensor
+# ------- (1) Preprocessing functions ----------
+#' Rescale time to [0,1], bin samples to grid, build Bernoulli kernel matrices.
 #'
-#' @param datlists Length M named list of length n lists of matrices.
-#' @param m modality
-#' @param p_m number of features for modality m
-#' @returns list of M length p_m vectors
-#'
-#' @noRd No user-side documentation
-init_b <- function(datlists, m, b_hat, p) {
-  data_unfold <- NULL
-    for (i in 1:n) {
-      data_unfold = cbind(data_unfold, datlists[[m]][[i]][2:(p_m+1),])
-    }
-  b.intitials <- svd(data_unfold, nu=r, nv=r)$u
-  b_hat <- b.intitials[,1]
-  return(b_hat)
+#' @returns Named list: datlist (time-rescaled), ti, tipos, ind_vec, Kmat,
+#'   Kmat_output, input_time_range, interval.
+#' @noRd
+init_time_intv <- function(datlist_m, p_m, n, interval_m, resolution) {
+
+  timestamps_all <- sort(unique(unlist(lapply(datlist_m, function(s) s[1, ]))))
+  input_time_range <- c(timestamps_all[1], timestamps_all[length(timestamps_all)])
+
+  if (is.null(interval_m)) interval_m <- input_time_range
+
+  # Rescale all time points (including interval bounds) to [0, 1].
+  rescale <- function(t) {(t - input_time_range[1]) / (input_time_range[2] - input_time_range[1])}
+  for (i in 1:n) datlist_m[[i]][1, ] <- rescale(datlist_m[[i]][1, ])
+  interval_m <- rescale(interval_m)
+
+  # Map each sample to a grid index (0 = outside interval).
+  ti <- lapply(1:n, function(i) {
+    idx <- 1 + round((resolution - 1) *
+                       (datlist_m[[i]][1, ] - interval_m[1]) /
+                       (interval_m[2] - interval_m[1]))
+    idx[idx <= 0 | idx > resolution] <- 0
+    idx
+  })
+
+  tipos <- lapply(1:n, function(i) ti[[i]] > 0)
+
+  # ind_vec maps each sample (across all subjects) to its subject index.
+  ind_vec <- unlist(lapply(1:n, function(i) rep(i, ncol(datlist_m[[i]]))))
+
+  tm <- unlist(lapply(datlist_m, function(s) s[1, ]))
+  grid <- seq(interval_m[1], interval_m[2], length.out = resolution)
+  Kmat <- bernoulli_kernel(tm, tm)
+  Kmat_output <- bernoulli_kernel(grid, tm)
+
+  return(list(
+    datlist = datlist_m,
+    ti = ti,
+    tipos = tipos,
+    ind_vec = ind_vec,
+    Kmat = Kmat,
+    Kmat_output = Kmat_output,
+    input_time_range = input_time_range,
+    interval = interval_m
+    ))
 }
 
-update_zeta <- function() {  # updates modality-specific time loadings
-  # Kernel ridge regression code (RKHS penalty term)
-  Ly <- list()
-  for (i in 1:n){
-    Ly <- c(Ly, list(a_hat[i]*as.numeric(b_hat%*%datlist[[i]][2:(p+1),])))
+#' Concatenate in-interval feature values across subjects into a single vector.
+#' @noRd
+flatten_features <- function(datlist_m, p_m, tipos_m) {
+  y <- NULL
+  for (i in seq_along(datlist_m)) {
+    y <- c(y, as.vector(t(datlist_m[[i]][2:(p_m + 1), tipos_m[[i]]])))
   }
-  phi_hat <- freg_rkhs(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth=smooth)
-  phi_hat <- phi_hat / sqrt(sum(phi_hat^2))
-
-  # Normalize
-  zeta_hat <- zeta_hat / sqrt(sum(zeta_hat^2))
-  return(zeta_hat)
+  return(y)
 }
 
-
-update_a <- function() {  # updates cross-modality shared subject loading
-  # update b
-  a_tilde <- rep(0,n)
-  for (i in 1:n){
-    t_temp <- tipos[[i]]
-    a_tilde[i] <- b_hat %*% datlist[[i]][2:(p+1),t_temp] %*% phi_hat[ti[[i]][t_temp]]
-    a_tilde[i] <- a_tilde[i] / sum((phi_hat[ti[[i]][t_temp]])^2)
-  }
-
-  # Normalize and calculate dif
-  a.new <- a_tilde / sqrt(sum(a_tilde^2))
-  dif <- sum((a_hat - a.new)^2)
-  a_hat <- a.new
-}
-
-update_b <- function() {  # updates feature loadings
-  temp_num <- matrix(0,p,n)
-  temp_denom <- rep(0,n)
-  for (i in 1:n){
-    t_temp <- tipos[[i]]
-    temp_num[,i] <- datlist[[i]][2:(p+1),t_temp] %*% phi_hat[ti[[i]][t_temp]]
-    temp_denom[i] <-sum((phi_hat[ti[[i]][t_temp]])^2)
-  }
-  b_tilde <- as.numeric(temp_num%*%a_hat) / as.numeric(temp_denom%*%(a_hat^2))
-  b.new <- b_tilde / sqrt(sum(b_tilde^2))
-  dif <- max(dif, sum((b_hat - b.new)^2))
-  b_hat <- b.new
-
-
-}
-
-update_datlists <- function() {
-}
-
-calc_lambda <- function() {
-  x <- NULL
-  for (i in 1:n){
-    t_temp <- ti[[i]]
-    t_temp <- t_temp[t_temp>0]
-    x <- c(x,as.vector(t(a_hat[i]*b_hat%o%phi_hat[t_temp])))
-  }
-  X <- cbind(X, x)
-  lm_fit <- lm(y~x-1)
-  lambda <- as.numeric(lm_fit$coefficients)
-  A[,s] <- a_hat
-  B[,s] <- b_hat
-  Phi[,s] <- t(phi_hat)
-  Lambda[s] <- lambda
-  Rsq[s] <- summary(lm_fit)$r.squared
-  accumRsq[s] <- summary(lm(y0~X-1))$r.squared
-}
+# --------- (5) Kernel functions -------------
 
 #' Functional Regression with RKHS penalty term
 #'
@@ -296,6 +268,102 @@ bernoulli_kernel <- function(x, y){
   return(kern_xy)
 }
 
+
+
+# ------- (3) Initialization function ----------
+
+#' Initialize feature loading's vector using SVD of mode-2-matricized tensor
+#'
+#' @param datlists Length M named list of length n lists of matrices.
+#' @param m modality
+#' @param p_m number of features for modality m
+#' @returns list of M length p_m vectors
+#'
+#' @noRd No user-side documentation
+init_b <- function(datlists, m, b_hat, p) {
+  data_unfold <- NULL
+    for (i in 1:n) {
+      data_unfold = cbind(data_unfold, datlists[[m]][[i]][2:(p_m+1),])
+    }
+  b.intitials <- svd(data_unfold, nu=r, nv=r)$u
+  b_hat <- b.intitials[,1]
+  return(b_hat)
+}
+
+
+
+# ------- (4) Updating functions ----------
+
+update_zeta <- function() {  # updates modality-specific time loadings
+  # Kernel ridge regression code (RKHS penalty term)
+  Ly <- list()
+  for (i in 1:n){
+    Ly <- c(Ly, list(a_hat[i]*as.numeric(b_hat%*%datlist[[i]][2:(p+1),])))
+  }
+  phi_hat <- freg_rkhs(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth=smooth)
+  phi_hat <- phi_hat / sqrt(sum(phi_hat^2))
+
+  # Normalize
+  zeta_hat <- zeta_hat / sqrt(sum(zeta_hat^2))
+  return(zeta_hat)
+}
+
+update_a <- function() {  # updates cross-modality shared subject loading
+  # update b
+  a_tilde <- rep(0,n)
+  for (i in 1:n){
+    t_temp <- tipos[[i]]
+    a_tilde[i] <- b_hat %*% datlist[[i]][2:(p+1),t_temp] %*% phi_hat[ti[[i]][t_temp]]
+    a_tilde[i] <- a_tilde[i] / sum((phi_hat[ti[[i]][t_temp]])^2)
+  }
+
+  # Normalize and calculate dif
+  a.new <- a_tilde / sqrt(sum(a_tilde^2))
+  dif <- sum((a_hat - a.new)^2)
+  a_hat <- a.new
+}
+
+update_b <- function() {  # updates feature loadings
+  temp_num <- matrix(0,p,n)
+  temp_denom <- rep(0,n)
+  for (i in 1:n){
+    t_temp <- tipos[[i]]
+    temp_num[,i] <- datlist[[i]][2:(p+1),t_temp] %*% phi_hat[ti[[i]][t_temp]]
+    temp_denom[i] <-sum((phi_hat[ti[[i]][t_temp]])^2)
+  }
+  b_tilde <- as.numeric(temp_num%*%a_hat) / as.numeric(temp_denom%*%(a_hat^2))
+  b.new <- b_tilde / sqrt(sum(b_tilde^2))
+  dif <- max(dif, sum((b_hat - b.new)^2))
+  b_hat <- b.new
+
+
+}
+
+update_datlists <- function() {
+}
+
+# ------- (5) Post algorithm functions ----------
+
+calc_lambda <- function() {
+  x <- NULL
+  for (i in 1:n){
+    t_temp <- ti[[i]]
+    t_temp <- t_temp[t_temp>0]
+    x <- c(x,as.vector(t(a_hat[i]*b_hat%o%phi_hat[t_temp])))
+  }
+  X <- cbind(X, x)
+  lm_fit <- lm(y~x-1)
+  lambda <- as.numeric(lm_fit$coefficients)
+  A[,s] <- a_hat
+  B[,s] <- b_hat
+  Phi[,s] <- t(phi_hat)
+  Lambda[s] <- lambda
+  Rsq[s] <- summary(lm_fit)$r.squared
+  accumRsq[s] <- summary(lm(y0~X-1))$r.squared
+}
+
 revise_signs <- function() {
 
 }
+
+
