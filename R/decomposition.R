@@ -230,42 +230,40 @@ flatten_features <- function(datlist_m, p_m, tipos_m) {
 }
 
 # --------- (5) Kernel functions -------------
-
-#' Functional Regression with RKHS penalty term
+#' Functional regression with RKHS penalty (Bernoulli kernel ridge regression).
 #'
-#' @param Ly
-#' @param a_hat
-#' @param ind_vec
-#' @param Kmat
-#' @param Kmat_output
-#' @param smooth
-#'
-#' @returns
-#'
-#' @noRd No user-side documentation
-freg_rkhs <- function(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth=1e-8){
-  A <- Kmat
-  for (i in 1:length(Ly)){
-    A[ind_vec==i,] <- A[ind_vec==i,]*a_hat[i]^2
+#' @param Ly Length-n list; Ly[[i]] is the projected time series for subject i.
+#' @param a_hat Length-n subject loading vector.
+#' @param ind_vec Integer vector mapping each sample to its subject (1..n).
+#' @param Kmat Kernel matrix between all observed time points.
+#' @param Kmat_output Kernel matrix between resolution grid and observed points.
+#' @param smooth RKHS penalty weight.
+#' @noRd
+freg_rkhs <- function(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth = 1e-8) {
+  K <- Kmat
+  for (i in 1:Ly) {
+    K[ind_vec == i, ] <- K[ind_vec == i, ] * a_hat[i]^2
   }
   cvec <- unlist(Ly)
-
-  A_temp <- A + smooth*diag(ncol(A))
-  beta <- solve(A_temp)%*%cvec
-
-  zeta_est <- Kmat_output %*% beta
-  return(zeta_est)
+  beta <- solve(K + smooth * diag(ncol(K))) %*% cvec
+  return(Kmat_output %*% beta)
 }
 
-bernoulli_kernel <- function(x, y){
-  k1_x <- x-0.5
-  k1_y <- y-0.5
-  k2_x <- 0.5*(k1_x^2-1/12)
-  k2_y <- 0.5*(k1_y^2-1/12)
-  xy <- abs(x %*% t(rep(1,length(y))) - rep(1,length(x)) %*% t(y))
-  k4_xy <- 1/24 * ((xy-0.5)^4 - 0.5*(xy-0.5)^2 + 7/240)
-  kern_xy <- k1_x %*% t(k1_y) + k2_x %*% t(k2_y) - k4_xy + 1
-  return(kern_xy)
+
+#' Bernoulli kernel between vectors x and y.
+#'
+#' @references
+#' Han, R., Shi, P. and Zhang, A.R. (2023) Guaranteed functional tensor singular
+#' value decomposition. JASA. doi:10.1080/01621459.2022.2153689.
+#' @noRd
+bernoulli_kernel <- function(x, y) {
+  k1_x <- x - 0.5
+  k1_y <- y - 0.5
+  k2_x <- 0.5 * (k1_x^2 - 1/12)
+  k2_y <- 0.5 * (k1_y^2 - 1/12)
+  xy   <- abs(x %*% t(rep(1, length(y))) - rep(1, length(x)) %*% t(y))
+  k4_xy <- 1/24 * ((xy - 0.5)^4 - 0.5 * (xy - 0.5)^2 + 7/240)
+  return(k1_x %*% t(k1_y) + k2_x %*% t(k2_y) - k4_xy + 1)
 }
 
 
