@@ -72,8 +72,8 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   for (l in 1:r) {
     message(sprintf("Estimating component %d of %d", l, r))
 
-    # Current residual data (after subtracting components 1..l-1), for this
-    # component l's lambda regression and R-squared calc
+    # Current residual data (after subtracting components 1..l-1),
+    # ...for component l's lambda regression and R-squared calc
     y_resid <- lapply(1:M, function(m)
       flatten_features(datlists[[m]], p[m], prep[[m]]$tipos))
 
@@ -170,7 +170,7 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
 
 # ----------------- HELPER FUNCTIONS ------------------
 
-# ------- (1) Preprocessing functions ----------
+# (1) Preprocessing functions
 
 #' Rescale time to [0,1], bin samples to grid, build Bernoulli kernel matrices.
 #'
@@ -228,6 +228,7 @@ flatten_features <- function(datlist_m, p_m, tipos_m) {
   for (i in seq_along(datlist_m)) {
     y <- c(y, as.vector(t(datlist_m[[i]][2:(p_m + 1), tipos_m[[i]]])))
   }
+
   return(y)
 }
 
@@ -235,7 +236,7 @@ flatten_features <- function(datlist_m, p_m, tipos_m) {
 
 
 
-# --------- (2) Kernel functions -------------
+# (2) Kernel functions
 
 #' Functional regression with RKHS penalty (Bernoulli kernel ridge regression).
 #'
@@ -269,7 +270,7 @@ bernoulli_kernel <- function(x, y) {
   k1_y <- y - 0.5
   k2_x <- 0.5 * (k1_x^2 - 1/12)
   k2_y <- 0.5 * (k1_y^2 - 1/12)
-  xy   <- abs(x %*% t(rep(1, length(y))) - rep(1, length(x)) %*% t(y))
+  xy <- abs(x %*% t(rep(1, length(y))) - rep(1, length(x)) %*% t(y))
   k4_xy <- 1/24 * ((xy - 0.5)^4 - 0.5 * (xy - 0.5)^2 + 7/240)
 
   return(k1_x %*% t(k1_y) + k2_x %*% t(k2_y) - k4_xy + 1)
@@ -279,7 +280,7 @@ bernoulli_kernel <- function(x, y) {
 
 
 
-# ------- (3) Initialization function ----------
+# (3) Initialization function
 
 #' Initialize b as the first left singular vector of the mode-2 unfolding.
 #' @noRd
@@ -288,6 +289,7 @@ init_b_hat <- function(datlist_m, p_m, n) {
   for (i in 1:n) {
     data_unfold <- cbind(data_unfold, datlist_m[[i]][2:(p_m + 1), ])
   }
+
   return(svd(data_unfold, nu = 1, nv = 0)$u[, 1])
 }
 
@@ -296,7 +298,7 @@ init_b_hat <- function(datlist_m, p_m, n) {
 
 
 
-# ------- (4) Updating functions ----------
+# (4) Updating functions
 
 #' Update temporal loading (zeta) for one modality via RKHS regression.
 #'
@@ -310,6 +312,7 @@ update_zeta <- function(datlist_m, p_m, b_hat, a_hat, ind_vec,
     a_hat[i] * as.numeric(b_hat %*% datlist_m[[i]][2:(p_m + 1), ]))
 
   zeta <- freg_rkhs(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth)
+
   return(zeta / sqrt(sum(zeta^2)))
 }
 
@@ -329,7 +332,7 @@ update_a <- function(datlists, p, b_hats, zeta_hats, prep, n, M) {
     for (m in 1:M) {
       in_range <- prep[[m]]$tipos[[i]]
       grid_idx <- prep[[m]]$ti[[i]][in_range]
-      zeta_i   <- zeta_hats[[m]][grid_idx]
+      zeta_i <- zeta_hats[[m]][grid_idx]
       num <- num + as.numeric(
         b_hats[[m]] %*% datlists[[m]][[i]][2:(p[m] + 1), in_range] %*% zeta_i)
       den <- den + sum(zeta_i^2)
@@ -390,7 +393,7 @@ compute_lambda <- function(y_m, datlist_m, p_m, a_hat, b_hat, zeta_hat,
 
 
 
-# ------- (5) Post algorithm functions ----------
+# (5) Post estimation algorithm functions
 
 #' Re-estimate all component lambdas jointly from the original (pre-deflation) data.
 #'
@@ -427,6 +430,7 @@ update_datlist <- function(datlist_m, p_m, a_hat, b_hat, zeta_hat,
       datlist_m[[i]][2:(p_m + 1), in_range] -
       lambda_ml * a_hat[i] * outer(b_hat, zeta_hat[grid_idx])
   }
+
   return(datlist_m)
 }
 
@@ -437,6 +441,12 @@ compute_rsq <- function(y, X) {
   return(summary(lm(y ~ X - 1))$r.squared)
 }
 
+
+
+
+
+
+# (6) Revising Signs
 
 #' Check signs so that loadings are comparable
 #'
