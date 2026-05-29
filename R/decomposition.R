@@ -68,57 +68,6 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   y0_all  <- unlist(y0_per_modality)
   X_accum <- NULL  # grows one column per component
 
-  # for (m in 1:M) {
-  #   p[m] <- sapply(datlists[[m]], nrow) - 1  # number of features per modality
-  #   if (!(length(unique(p)) == 1)) {
-  #     stop(paste0("Modality '", names(datlists)[m], "' has inconsistent feature counts across subjects"))
-  #   }
-  #   B[[m]] <- matrix(0, p[m], r)
-  #
-  #   # Calculate range for each subject in each modality
-  #   timestamps_all <- vector(mode = "list", length = M)
-  #   interval <- vector(mode = "list", length = M)
-  #   timestamps_all[[m]] <- do.call(c,lapply(datlists[[m]], FUN=function(u){u[1,]}))  # extracts time point row into vector
-  #   timestamps_all[[m]] <- sort(unique(timestamps_all[[m]]))  #
-  #
-  #   if (is.null(interval)){ # initializes interval as 1st timepoint to last if not specified
-  #     interval[[m]] <- c(timestamps_all[[m]][1], timestamps_all[[m]][length(timestamps_all[[m]])])
-  #   }
-  #
-  #   # Rescale time to 0-1
-  #   input_time_range <- c(timestamps_all[[m]][1], timestamps_all[[m]][length(timestamps_all[[m]])])
-  #   for (i in 1:n) {
-  #     datlists[[m]][[i]][1,] <- (datlists[[m]][[i]][1,] - input_time_range[[m]][1]) / (input_time_range[[m]][2] - input_time_range[[m]][1])
-  #   }
-  #   interval[[m]] <- (interval[[m]] - input_time_range[[m]][1]) / (input_time_range[[m]][2] - input_time_range[[m]][1])
-  #
-  #   # Binning continuous time to a discrete grid (based on interval and resolution)
-  #   for (i in 1:n) {
-  #     temp <- 1 + round((resolution-1) * (datlists[[m]][[i]][1,] - interval[[m]][1]) / (interval[[m]][2] - interval[[m]][1]))
-  #     temp[which(temp<=0 | temp>resolution)] <- 0
-  #     ti[[m]][[i]] <- temp  # subject i's timepoint
-  #   }
-  #
-  #   # Flattening out feature data into long vector
-  #   for (i in 1:n){
-  #     keep <- ti[[m]]][[i]]>0
-  #     tipos[[m]][[i]] <- keep
-  #     y0[[m]] <- c(y0[[m]], as.vector(t(datlists[[m]][[i]][2:(p+1),keep])))
-  #   }
-  #
-  #   # creates long vector of timepoints for calculating bernoulli kernel from all timepoints
-  #   Lt <- list()
-  #   ind_vec <- NULL
-  #   for (i in 1:n){
-  #     Lt <- c(Lt, list(datlist[[i]][1,]))
-  #     ind_vec <- c(ind_vec, rep(i,length(Lt[[i]])))
-  #   }
-  #
-  #   tm <- unlist(Lt)
-  #   Kmat[[m]] <- bernoulli_kernel(tm, tm)
-  #   Kmat_output[[m]] <- bernoulli_kernel(seq(interval[1],interval[2],length.out = resolution), tm)
-  # }
-
   # SEQUENTIAL ESTIMATION ALGORITHM
   for (l in 1:r) {
     message(sprintf("Estimating component %d of %d", l, r))
