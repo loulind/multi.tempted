@@ -253,6 +253,7 @@ freg_rkhs <- function(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth = 1e-8) {
   }
   cvec <- unlist(Ly)
   beta <- solve(K + smooth * diag(ncol(K))) %*% cvec
+
   return(Kmat_output %*% beta)
 }
 
@@ -270,6 +271,7 @@ bernoulli_kernel <- function(x, y) {
   k2_y <- 0.5 * (k1_y^2 - 1/12)
   xy   <- abs(x %*% t(rep(1, length(y))) - rep(1, length(x)) %*% t(y))
   k4_xy <- 1/24 * ((xy - 0.5)^4 - 0.5 * (xy - 0.5)^2 + 7/240)
+
   return(k1_x %*% t(k1_y) + k2_x %*% t(k2_y) - k4_xy + 1)
 }
 
@@ -308,7 +310,7 @@ update_zeta <- function(datlist_m, p_m, b_hat, a_hat, ind_vec,
     a_hat[i] * as.numeric(b_hat %*% datlist_m[[i]][2:(p_m + 1), ]))
 
   zeta <- freg_rkhs(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth)
-  zeta / sqrt(sum(zeta^2))
+  return(zeta / sqrt(sum(zeta^2)))
 }
 
 
@@ -335,7 +337,7 @@ update_a <- function(datlists, p, b_hats, zeta_hats, prep, n, M) {
     a_tilde[i] <- num / den
   }
 
-  a_tilde / sqrt(sum(a_tilde^2))
+  return(a_tilde / sqrt(sum(a_tilde^2)))
 }
 
 
@@ -345,19 +347,20 @@ update_a <- function(datlists, p, b_hats, zeta_hats, prep, n, M) {
 #' Returns the unit-norm solution.
 #' @noRd
 update_b <- function(datlist_m, p_m, zeta_hat, tipos_m, ti_m, a_hat, n) {
-  num   <- matrix(0, p_m, n)
+  num <- matrix(0, p_m, n)
   denom <- numeric(n)
 
   for (i in 1:n) {
     in_range <- tipos_m[[i]]
     grid_idx <- ti_m[[i]][in_range]
-    zeta_i   <- zeta_hat[grid_idx]
+    zeta_i <- zeta_hat[grid_idx]
     num[, i] <- datlist_m[[i]][2:(p_m + 1), in_range] %*% zeta_i
     denom[i] <- sum(zeta_i^2)
   }
 
   b_tilde <- as.numeric(num %*% a_hat) / as.numeric(denom %*% (a_hat^2))
-  b_tilde / sqrt(sum(b_tilde^2))
+
+  return(b_tilde / sqrt(sum(b_tilde^2)))
 }
 
 
@@ -376,8 +379,13 @@ compute_lambda <- function(y_m, datlist_m, p_m, a_hat, b_hat, zeta_hat,
     x_m <- c(x_m, as.vector(t(a_hat[i] * outer(b_hat, zeta_hat[grid_idx]))))
   }
   lambda <- as.numeric(lm(y_m ~ x_m - 1)$coefficients)
-  list(lambda = lambda, x_m = x_m)
+
+  return(list(
+    lambda = lambda,
+    x_m = x_m
+    ))
 }
+
 
 
 
@@ -404,7 +412,7 @@ reestimate_lambda <- function(y0_per_modality, A, B, Zeta, prep, p, M, n, r) {
     }
     Lambda[m, ] <- as.numeric(lm(y0_per_modality[[m]] ~ X_m - 1)$coefficients)
   }
-  Lambda
+  return(Lambda)
 }
 
 
@@ -419,15 +427,16 @@ update_datlist <- function(datlist_m, p_m, a_hat, b_hat, zeta_hat,
       datlist_m[[i]][2:(p_m + 1), in_range] -
       lambda_ml * a_hat[i] * outer(b_hat, zeta_hat[grid_idx])
   }
-  datlist_m
+  return(datlist_m)
 }
 
 
 #' R-squared of regressing y on X (no intercept).
 #' @noRd
 compute_rsq <- function(y, X) {
-  summary(lm(y ~ X - 1))$r.squared
+  return(summary(lm(y ~ X - 1))$r.squared)
 }
+
 
 #' Check signs so that loadings are comparable
 #'
@@ -478,6 +487,11 @@ revise_signs <- function(A, B, Zeta, Lambda, r, M) {
     }
   }
 
-  list(A = A, B = B, Zeta = Zeta, Lambda = Lambda)
+  return(list(
+    A = A,
+    B = B,
+    Zeta = Zeta,
+    Lambda = Lambda
+    ))
 }
 
