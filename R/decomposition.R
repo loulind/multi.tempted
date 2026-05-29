@@ -171,6 +171,7 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
 # ----------------- HELPER FUNCTIONS ------------------
 
 # ------- (1) Preprocessing functions ----------
+
 #' Rescale time to [0,1], bin samples to grid, build Bernoulli kernel matrices.
 #'
 #' @returns Named list: datlist (time-rescaled), ti, tipos, ind_vec, Kmat,
@@ -219,6 +220,7 @@ init_time_intv <- function(datlist_m, p_m, n, interval_m, resolution) {
     ))
 }
 
+
 #' Concatenate in-interval feature values across subjects into a single vector.
 #' @noRd
 flatten_features <- function(datlist_m, p_m, tipos_m) {
@@ -229,7 +231,12 @@ flatten_features <- function(datlist_m, p_m, tipos_m) {
   return(y)
 }
 
-# --------- (5) Kernel functions -------------
+
+
+
+
+# --------- (2) Kernel functions -------------
+
 #' Functional regression with RKHS penalty (Bernoulli kernel ridge regression).
 #'
 #' @param Ly Length-n list; Ly[[i]] is the projected time series for subject i.
@@ -268,100 +275,209 @@ bernoulli_kernel <- function(x, y) {
 
 
 
+
+
 # ------- (3) Initialization function ----------
 
-#' Initialize feature loading's vector using SVD of mode-2-matricized tensor
-#'
-#' @param datlists Length M named list of length n lists of matrices.
-#' @param m modality
-#' @param p_m number of features for modality m
-#' @returns list of M length p_m vectors
-#'
-#' @noRd No user-side documentation
-init_b <- function(datlists, m, b_hat, p) {
+#' Initialize b as the first left singular vector of the mode-2 unfolding.
+#' @noRd
+init_b_hat <- function(datlist_m, p_m, n) {
   data_unfold <- NULL
-    for (i in 1:n) {
-      data_unfold = cbind(data_unfold, datlists[[m]][[i]][2:(p_m+1),])
-    }
-  b.intitials <- svd(data_unfold, nu=r, nv=r)$u
-  b_hat <- b.intitials[,1]
-  return(b_hat)
+  for (i in 1:n) {
+    data_unfold <- cbind(data_unfold, datlist_m[[i]][2:(p_m + 1), ])
+  }
+  return(svd(data_unfold, nu = 1, nv = 0)$u[, 1])
 }
+
+
+
 
 
 
 # ------- (4) Updating functions ----------
 
-update_zeta <- function() {  # updates modality-specific time loadings
-  # Kernel ridge regression code (RKHS penalty term)
-  Ly <- list()
-  for (i in 1:n){
-    Ly <- c(Ly, list(a_hat[i]*as.numeric(b_hat%*%datlist[[i]][2:(p+1),])))
+#' Update temporal loading (zeta) for one modality via RKHS regression.
+#'
+#' Projects each subject's data onto b, then fits the result as a smooth
+#' function of time (penalised by the RKHS norm). Returns the unit-norm
+#' vector on the resolution grid.
+#' @noRd
+update_zeta <- function(datlist_m, p_m, b_hat, a_hat, ind_vec,
+                        Kmat, Kmat_output, smooth) {
+  Ly <- lapply(seq_along(datlist_m), function(i)
+    a_hat[i] * as.numeric(b_hat %*% datlist_m[[i]][2:(p_m + 1), ]))
+
+  zeta <- freg_rkhs(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth)
+  zeta / sqrt(sum(zeta^2))
+}
+
+
+#' Update shared subject loading (a_hat) by pooling signal across all modalities.
+#'
+#' For each subject i the optimal (unnormalised) a is:
+#'   numerator   = sum_m  b_m^T X_i^(m) zeta_i^(m)
+#'   denominator = sum_m  || zeta_i^(m) ||^2
+#' @noRd
+update_a <- function(datlists, p, b_hats, zeta_hats, prep, n, M) {
+  a_tilde <- numeric(n)
+
+  for (i in 1:n) {
+    num <- 0
+    den <- 0
+    for (m in 1:M) {
+      in_range <- prep[[m]]$tipos[[i]]
+      grid_idx <- prep[[m]]$ti[[i]][in_range]
+      zeta_i   <- zeta_hats[[m]][grid_idx]
+      num <- num + as.numeric(
+        b_hats[[m]] %*% datlists[[m]][[i]][2:(p[m] + 1), in_range] %*% zeta_i)
+      den <- den + sum(zeta_i^2)
+    }
+    a_tilde[i] <- num / den
   }
-  phi_hat <- freg_rkhs(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth=smooth)
-  phi_hat <- phi_hat / sqrt(sum(phi_hat^2))
 
-  # Normalize
-  zeta_hat <- zeta_hat / sqrt(sum(zeta_hat^2))
-  return(zeta_hat)
+  a_tilde / sqrt(sum(a_tilde^2))
 }
 
-update_a <- function() {  # updates cross-modality shared subject loading
-  # update b
-  a_tilde <- rep(0,n)
-  for (i in 1:n){
-    t_temp <- tipos[[i]]
-    a_tilde[i] <- b_hat %*% datlist[[i]][2:(p+1),t_temp] %*% phi_hat[ti[[i]][t_temp]]
-    a_tilde[i] <- a_tilde[i] / sum((phi_hat[ti[[i]][t_temp]])^2)
+
+#' Update feature loading (b_hat) for one modality.
+#'
+#' Solves the weighted least-squares problem for b given fixed a and zeta.
+#' Returns the unit-norm solution.
+#' @noRd
+update_b <- function(datlist_m, p_m, zeta_hat, tipos_m, ti_m, a_hat, n) {
+  num   <- matrix(0, p_m, n)
+  denom <- numeric(n)
+
+  for (i in 1:n) {
+    in_range <- tipos_m[[i]]
+    grid_idx <- ti_m[[i]][in_range]
+    zeta_i   <- zeta_hat[grid_idx]
+    num[, i] <- datlist_m[[i]][2:(p_m + 1), in_range] %*% zeta_i
+    denom[i] <- sum(zeta_i^2)
   }
 
-  # Normalize and calculate dif
-  a.new <- a_tilde / sqrt(sum(a_tilde^2))
-  dif <- sum((a_hat - a.new)^2)
-  a_hat <- a.new
+  b_tilde <- as.numeric(num %*% a_hat) / as.numeric(denom %*% (a_hat^2))
+  b_tilde / sqrt(sum(b_tilde^2))
 }
 
-update_b <- function() {  # updates feature loadings
-  temp_num <- matrix(0,p,n)
-  temp_denom <- rep(0,n)
-  for (i in 1:n){
-    t_temp <- tipos[[i]]
-    temp_num[,i] <- datlist[[i]][2:(p+1),t_temp] %*% phi_hat[ti[[i]][t_temp]]
-    temp_denom[i] <-sum((phi_hat[ti[[i]][t_temp]])^2)
+
+#' Estimate modality-specific scale (lambda) via no-intercept regression.
+#'
+#' Regresses the vectorised residual data against the rank-1 reconstruction
+#' a_hat[i] * outer(b_hat, zeta_hat[grid_idx]).
+#'
+#' @returns Named list: lambda (scalar), x_m (reconstruction vector).
+#' @noRd
+compute_lambda <- function(y_m, datlist_m, p_m, a_hat, b_hat, zeta_hat,
+                           tipos_m, ti_m, n) {
+  x_m <- NULL
+  for (i in 1:n) {
+    grid_idx <- ti_m[[i]][tipos_m[[i]]]
+    x_m <- c(x_m, as.vector(t(a_hat[i] * outer(b_hat, zeta_hat[grid_idx]))))
   }
-  b_tilde <- as.numeric(temp_num%*%a_hat) / as.numeric(temp_denom%*%(a_hat^2))
-  b.new <- b_tilde / sqrt(sum(b_tilde^2))
-  dif <- max(dif, sum((b_hat - b.new)^2))
-  b_hat <- b.new
-
-
+  lambda <- as.numeric(lm(y_m ~ x_m - 1)$coefficients)
+  list(lambda = lambda, x_m = x_m)
 }
 
-update_datlists <- function() {
-}
+
+
 
 # ------- (5) Post algorithm functions ----------
 
-calc_lambda <- function() {
-  x <- NULL
-  for (i in 1:n){
-    t_temp <- ti[[i]]
-    t_temp <- t_temp[t_temp>0]
-    x <- c(x,as.vector(t(a_hat[i]*b_hat%o%phi_hat[t_temp])))
+#' Re-estimate all component lambdas jointly from the original (pre-deflation) data.
+#'
+#' For each modality, regresses y0 against the rank-r reconstruction matrix
+#' [x_1 | x_2 | ... | x_r] without intercept.
+#' @noRd
+reestimate_lambda <- function(y0_per_modality, A, B, Zeta, prep, p, M, n, r) {
+  Lambda <- matrix(0, M, r, dimnames = list(NULL, colnames(A)))
+
+  for (m in 1:M) {
+    X_m <- NULL
+    for (l in 1:r) {
+      x_l <- NULL
+      for (i in 1:n) {
+        grid_idx <- prep[[m]]$ti[[i]][prep[[m]]$tipos[[i]]]
+        x_l <- c(x_l, as.vector(t(A[i, l] * outer(B[[m]][, l], Zeta[[m]][grid_idx, l]))))
+      }
+      X_m <- cbind(X_m, x_l)
+    }
+    Lambda[m, ] <- as.numeric(lm(y0_per_modality[[m]] ~ X_m - 1)$coefficients)
   }
-  X <- cbind(X, x)
-  lm_fit <- lm(y~x-1)
-  lambda <- as.numeric(lm_fit$coefficients)
-  A[,s] <- a_hat
-  B[,s] <- b_hat
-  Phi[,s] <- t(phi_hat)
-  Lambda[s] <- lambda
-  Rsq[s] <- summary(lm_fit)$r.squared
-  accumRsq[s] <- summary(lm(y0~X-1))$r.squared
+  Lambda
 }
 
-revise_signs <- function() {
 
+#' Remove the contribution of one component from one modality's data.
+#' @noRd
+update_datlist <- function(datlist_m, p_m, a_hat, b_hat, zeta_hat,
+                           lambda_ml, tipos_m, ti_m, n) {
+  for (i in 1:n) {
+    in_range <- which(tipos_m[[i]])
+    grid_idx <- ti_m[[i]][tipos_m[[i]]]
+    datlist_m[[i]][2:(p_m + 1), in_range] <-
+      datlist_m[[i]][2:(p_m + 1), in_range] -
+      lambda_ml * a_hat[i] * outer(b_hat, zeta_hat[grid_idx])
+  }
+  datlist_m
 }
 
+
+#' R-squared of regressing y on X (no intercept).
+#' @noRd
+compute_rsq <- function(y, X) {
+  summary(lm(y ~ X - 1))$r.squared
+}
+
+#' Check signs so that loadings are comparable
+#'
+#' Convention (applied per component l):
+#'   1. Lambda[m,l] >= 0: if negative, absorb sign into B[[m]][,l].
+#'   2. sum(Zeta[[m]][,l]) >= 0: if negative, flip Zeta and B (product unchanged).
+#'   3. sum(B[[m]][,l]) >= 0: if negative, flip B and Zeta (product unchanged).
+#'   4. sum(A[,l]) >= 0 (shared): if negative, flip A and all B[[m]][,l].
+#'
+#' @noRd
+revise_signs <- function(A, B, Zeta, Lambda, r, M) {
+  for (l in 1:r) {
+
+    # 1. Ensure Lambda >= 0; absorb sign into B (modality-specific, preserves product).
+    for (m in 1:M) {
+      if (Lambda[m, l] < 0) {
+        Lambda[m, l] <- -Lambda[m, l]
+        B[[m]][, l]  <- -B[[m]][, l]
+      }
+    }
+
+    # 2. Ensure sum(Zeta) >= 0 per modality; compensate in B.
+    for (m in 1:M) {
+      sgn <- sign(sum(Zeta[[m]][, l]))
+      if (sgn == 0) sgn <- 1
+      if (sgn < 0) {
+        Zeta[[m]][, l] <- -Zeta[[m]][, l]
+        B[[m]][, l]    <- -B[[m]][, l]
+      }
+    }
+
+    # 3. Ensure sum(B) >= 0 per modality; compensate in Zeta.
+    for (m in 1:M) {
+      sgn <- sign(sum(B[[m]][, l]))
+      if (sgn == 0) sgn <- 1
+      if (sgn < 0) {
+        B[[m]][, l]    <- -B[[m]][, l]
+        Zeta[[m]][, l] <- -Zeta[[m]][, l]
+      }
+    }
+
+    # 4. Ensure sum(A) >= 0 (shared loading); compensate in all B[[m]].
+    sgn_A <- sign(sum(A[, l]))
+    if (sgn_A == 0) sgn_A <- 1
+    if (sgn_A < 0) {
+      A[, l] <- -A[, l]
+      for (m in 1:M) B[[m]][, l] <- -B[[m]][, l]
+    }
+  }
+
+  list(A = A, B = B, Zeta = Zeta, Lambda = Lambda)
+}
 
