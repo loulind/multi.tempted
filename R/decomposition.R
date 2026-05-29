@@ -44,18 +44,20 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
     pm_vals[[1]]
   })
 
+  # Initialize time intervals (rescale to [0,1], bin based on resolution, build kernel matrices)
+  prep <- lapply(seq_len(M), function(m) {
+    interval_m <- if (!is.null(interval)) interval[[m]] else NULL
+    init_time_intv(datlists[[m]], p[m], n, interval_m, resolution)
+  })
+  for (m in seq_len(M)) datlists[[m]] <- prep[[m]]$datlist
+
   # Initialize output
-  A <- matrix(0, nrow = n, ncol = r) # subject loading matrix
+  A <- matrix(0, nrow = n, ncol = r) # shared subject loading matrix
   B <- lapply(seq_len(M), function(m) matrix(0, p[m], r)) # list of feature loading matrices
-  Zeta <- lapply(seq_len(M), function(m) matrix(0, resolution, r)) # time loading
+  Zeta <- lapply(seq_len(M), function(m) matrix(0, resolution, r)) # list of time loading fns
   Lambda <- matrix(0, M, r)  # modality-specific scalings
   Rsq <- numeric(r)
   accumRsq <- numeric(r)
-
-  ti <- lapply(1:M, function(m) lapply(1:n, function(x) vector()))  # M lists containing subject timepoint indices
-  tipos <- lapply(1:M, function(m) lapply(1:n, function(x) vector()))  # M lists of whether timepoints falls in range
-  Kmat <- list() # list of matrices to calc Bernoulli kernel between all observed time points
-  Kmat_output <- list() # list of matrices to calc Bernoulli kernel between resolution grid and actual observed time points
 
   X <- NULL  # design matrix
   y0 <- vector(mode = "list", length=M)  #flattened feature data
