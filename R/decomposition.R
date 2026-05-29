@@ -28,14 +28,17 @@
 #' @md
 multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
                                  resolution = 101, maxiter=20, epsilon=1e-4) {
-  if (length(unique(lengths(datlists))) != 1) {
-    stop("All modalities must have the same number of subjects.")
+    if (!(length(datlists) >= 1)) {
+     stop("Must have a strictly positive number of modalities")
+  }
+    if (length(unique(lengths(datlists))) != 1) {
+      stop("All modalities must have the same number of subjects.")
   }
 
   # Initialize data dimensions
   M <- length(datlists)  # number modalities
   n <- length(datlists[[1]])  # number subjects
-  p <- sapply(seq_len(M), function(m) { # list of features per modality
+  p <- sapply(1:M, function(m) { # list of features per modality
     pm_vals <- sapply(datlists[[m]], nrow) - 1
     if (length(unique(pm_vals)) != 1) {
       stop(sprintf("Modality '%s' has inconsistent feature counts across subjects.",
@@ -45,16 +48,16 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   })
 
   # Initialize time intervals (rescale to [0,1], bin based on resolution, build kernel matrices)
-  prep <- lapply(seq_len(M), function(m) {
+  prep <- lapply(1:M, function(m) {
     interval_m <- if (!is.null(interval)) interval[[m]] else NULL
     init_time_intv(datlists[[m]], p[m], n, interval_m, resolution)
   })
-  for (m in seq_len(M)) datlists[[m]] <- prep[[m]]$datlist
+  for (m in 1:M) datlists[[m]] <- prep[[m]]$datlist
 
   # Initialize output
   A <- matrix(0, nrow = n, ncol = r) # shared subject loading matrix
-  B <- lapply(seq_len(M), function(m) matrix(0, p[m], r)) # list of feature loading matrices
-  Zeta <- lapply(seq_len(M), function(m) matrix(0, resolution, r)) # list of time loading fns
+  B <- lapply(1:M, function(m) matrix(0, p[m], r)) # list of feature loading matrices
+  Zeta <- lapply(1:M, function(m) matrix(0, resolution, r)) # list of time loading fns
   Lambda <- matrix(0, M, r)  # modality-specific scalings
   Rsq <- numeric(r)
   accumRsq <- numeric(r)
