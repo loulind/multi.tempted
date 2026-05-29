@@ -185,31 +185,31 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
     }
   }
 
-  for (r in 1:length(Lambda[[m]])){
-    for (m in 1:M) {
-      # revise the sign of Lambdas
-      if (Lambda[[m]][r]<0){
-        Lambda[[m]][r] <- -Lambda[[m]][r]
-        A[,r] <- -A[,r]
-      }
-
-      # revise the signs to make sure summation of zeta is nonnegative
-      sgn.zeta <- sign(colSums(Zeta[[m]]))
-      sgn.zeta[sgn.zeta==0] <- 1
-      for (r in 1:ncol(Phi)){
-        Zeta[[m]][,r] <- sgn.phi[r]*Zeta[[m]][,r]
-        A[,r] <- sgn.zeta[r]*A[,r]
-      }
-
-      # revise the signs to make sure summation of B is nonnegative
-      sgn.B <- sign(colSums(B[[m]]))
-      sgn.B[sgn.B==0] <- 1
-      for (r in 1:ncol(Phi)){
-        B[[m]][,r] <- sgn.B[r]*B[[m]][,r]
-        A[,r] <- sgn.B[r]*A[,r]
-      }
-    }
-  }
+  # for (r in 1:length(Lambda[[m]])){
+  #   for (m in 1:M) {
+  #     # revise the sign of Lambdas
+  #     if (Lambda[[m]][r]<0){
+  #       Lambda[[m]][r] <- -Lambda[[m]][r]
+  #       A[,r] <- -A[,r]
+  #     }
+  #
+  #     # revise the signs to make sure summation of zeta is nonnegative
+  #     sgn.zeta <- sign(colSums(Zeta[[m]]))
+  #     sgn.zeta[sgn.zeta==0] <- 1
+  #     for (r in 1:ncol(Phi)){
+  #       Zeta[[m]][,r] <- sgn.phi[r]*Zeta[[m]][,r]
+  #       A[,r] <- sgn.zeta[r]*A[,r]
+  #     }
+  #
+  #     # revise the signs to make sure summation of B is nonnegative
+  #     sgn.B <- sign(colSums(B[[m]]))
+  #     sgn.B[sgn.B==0] <- 1
+  #     for (r in 1:ncol(Phi)){
+  #       B[[m]][,r] <- sgn.B[r]*B[[m]][,r]
+  #       A[,r] <- sgn.B[r]*A[,r]
+  #     }
+  #   }
+  # }
 
   time_return <- seq(interval[1],interval[2],length.out = resolution)
   time_return <- time_return * (input_time_range[2] - input_time_range[1]) + input_time_range[1]
