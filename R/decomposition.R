@@ -32,11 +32,9 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
     stop("All modalities must have the same number of subjects.")
   }
 
-  # Initialize intermediate variables
+  # Initialize data dimensions
   M <- length(datlists)  # number modalities
   n <- length(datlists[[1]])  # number subjects
-  A <- matrix(0, nrow = n, ncol = r) # subject loading components
-  B <- vector(mode = "list", length = M) # feature loading components
   p <- sapply(seq_len(M), function(m) { # list of features per modality
     pm_vals <- sapply(datlists[[m]], nrow) - 1
     if (length(unique(pm_vals)) != 1) {
@@ -46,15 +44,21 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
     pm_vals[[1]]
   })
 
+  # Initialize output
+  A <- matrix(0, nrow = n, ncol = r) # subject loading matrix
+  B <- lapply(seq_len(M), function(m) matrix(0, p[m], r)) # list of feature loading matrices
+  Zeta <- lapply(seq_len(M), function(m) matrix(0, resolution, r)) # time loading
+  Lambda <- matrix(0, M, r)  # modality-specific scalings
+  Rsq <- numeric(r)
+  accumRsq <- numeric(r)
+
   ti <- lapply(1:M, function(m) lapply(1:n, function(x) vector()))  # M lists containing subject timepoint indices
   tipos <- lapply(1:M, function(m) lapply(1:n, function(x) vector()))  # M lists of whether timepoints falls in range
   Kmat <- list() # list of matrices to calc Bernoulli kernel between all observed time points
   Kmat_output <- list() # list of matrices to calc Bernoulli kernel between resolution grid and actual observed time points
 
-  Lambda <- replicate(M, numeric(r), simplify = FALSE)  # modality-specific scalings
   X <- NULL  # design matrix
   y0 <- vector(mode = "list", length=M)  #flattened feature data
-  Rsq <- accumRsq <- rep(0, r)
 
   for (m in 1:M) {
     p[m] <- sapply(datlists[[m]], nrow) - 1  # number of features per modality
