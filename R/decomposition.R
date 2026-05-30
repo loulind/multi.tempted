@@ -38,7 +38,7 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   # Initialize data dimensions
   M <- length(datlists)  # number modalities
   n <- length(datlists[[1]])  # number subjects
-  p <- sapply(1:M, function(m) { # list of features per modality
+  p <- sapply(1:M, function(m) { # list of number features per modality
     pm_vals <- sapply(datlists[[m]], nrow) - 1
     if (length(unique(pm_vals)) != 1) {
       stop(sprintf("Modality '%s' has inconsistent feature counts across subjects.",
@@ -62,7 +62,7 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   Rsq <- numeric(r)
   accumRsq <- numeric(r)
 
-  # Flatten original data for accumulated R-squared tracking
+  # Flatten original data for accumulated R-sqr tracking
   y0_per_modality <- lapply(1:M, function(m)
     flatten_features(datlists[[m]], p[m], prep[[m]]$tipos))
   y0_all  <- unlist(y0_per_modality)
@@ -170,7 +170,7 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
 
 # ----------------- HELPER FUNCTIONS ------------------
 
-# (1) Preprocessing functions
+# -----(1) Preprocessing functions------
 
 #' Rescale time to [0,1], bin samples to grid, build Bernoulli kernel matrices.
 #'
@@ -236,7 +236,7 @@ flatten_features <- function(datlist_m, p_m, tipos_m) {
 
 
 
-# (2) Kernel functions
+# ------(2) Kernel functions------
 
 #' Functional regression with RKHS penalty (Bernoulli kernel ridge regression).
 #'
@@ -280,7 +280,7 @@ bernoulli_kernel <- function(x, y) {
 
 
 
-# (3) Initialization function
+# -------(3) Initialization function--------
 
 #' Initialize b as the first left singular vector of the mode-2 unfolding.
 #' @noRd
@@ -298,7 +298,7 @@ init_b_hat <- function(datlist_m, p_m, n) {
 
 
 
-# (4) Updating functions
+# --------(4) Updating functions----------
 
 #' Update temporal loading (zeta) for one modality via RKHS regression.
 #'
@@ -393,7 +393,7 @@ compute_lambda <- function(y_m, datlist_m, p_m, a_hat, b_hat, zeta_hat,
 
 
 
-# (5) Post estimation algorithm functions
+# --------(5) Post estimation algorithm functions---------
 
 #' Re-estimate all component lambdas jointly from the original (pre-deflation) data.
 #'
@@ -446,7 +446,7 @@ compute_rsq <- function(y, X) {
 
 
 
-# (6) Revising Signs
+# ---------(6) Revising Signs----------
 
 #' Check signs so that loadings are comparable
 #'
