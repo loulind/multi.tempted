@@ -519,4 +519,3 @@ revise_signs <- function(A, B, Zeta, Lambda, r, M) {
     Lambda = Lambda
     ))
 }
-
