@@ -100,10 +100,10 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
       # (a) Temporal loading: update zeta for each modality independently
       zeta_hats <- lapply(1:M, function(m)
         update_zeta(datlists[[m]], p[m], b_hats[[m]], a_hat, prep[[m]]$ind_vec,
-                    prep[[m]]$Kmat, prep[[m]]$Kmat_output, smooth))
+                    prep[[m]]$Kmat, prep[[m]]$Kmat_output, smooth, weights[m]))
 
       # (b) Subject loading: update shared a_hat across modalities
-      a_new <- update_a(datlists, p, b_hats, zeta_hats, prep, n, M)
+      a_new <- update_a(datlists, p, b_hats, zeta_hats, prep, n, M, weights)
       dif <- sum((a_hat - a_new)^2)
       a_hat <- a_new
 
