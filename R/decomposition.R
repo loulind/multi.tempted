@@ -466,19 +466,26 @@ compute_rsq <- function(y, X) {
 
 # ---------(6) Revising Signs----------
 
-#' Check signs so that loadings are comparable
+#' Canonicalise signs so that loadings are interpretable.
 #'
-#' Convention (applied per component l):
-#'   1. Lambda[m,l] >= 0: if negative, absorb sign into B[[m]][,l].
-#'   2. sum(Zeta[[m]][,l]) >= 0: if negative, flip Zeta and B (product unchanged).
-#'   3. sum(B[[m]][,l]) >= 0: if negative, flip B and Zeta (product unchanged).
-#'   4. sum(A[,l]) >= 0 (shared): if negative, flip A and all B[[m]][,l].
+#' All sign corrections are absorbed into B[[m]][,l], which acts as the
+#' per-modality "sign sink". This guarantees three compatible conventions
+#' without circular conflicts:
+#'
+#'   1. Lambda[m,l] >= 0  (absorb sign into B).
+#'   2. sum(Zeta[[m]][,l]) >= 0  (absorb sign into B).
+#'   3. sum(A[,l]) >= 0  (shared; absorb sign into all B[[m]][,l]).
+#'
+#' Note: sum(B[[m]][,l]) is NOT guaranteed non-negative. Enforcing
+#' sum(B) >= 0 simultaneously with sum(Zeta) >= 0 is impossible in
+#' general for a shared-A multi-modality model, because doing so creates
+#' a circular flip (fixing one undoes the other).
 #'
 #' @noRd
 revise_signs <- function(A, B, Zeta, Lambda, r, M) {
   for (l in 1:r) {
 
-    # 1. Ensure Lambda >= 0; absorb sign into B (modality-specific, preserves product).
+    # 1. Ensure Lambda >= 0; absorb sign into B (preserves product).
     for (m in 1:M) {
       if (Lambda[m, l] < 0) {
         Lambda[m, l] <- -Lambda[m, l]
@@ -486,7 +493,7 @@ revise_signs <- function(A, B, Zeta, Lambda, r, M) {
       }
     }
 
-    # 2. Ensure sum(Zeta) >= 0 per modality; compensate in B.
+    # 2. Ensure sum(Zeta) >= 0 per modality; absorb sign into B (preserves product).
     for (m in 1:M) {
       sgn <- sign(sum(Zeta[[m]][, l]))
       if (sgn == 0) sgn <- 1
@@ -496,17 +503,7 @@ revise_signs <- function(A, B, Zeta, Lambda, r, M) {
       }
     }
 
-    # 3. Ensure sum(B) >= 0 per modality; compensate in Zeta.
-    for (m in 1:M) {
-      sgn <- sign(sum(B[[m]][, l]))
-      if (sgn == 0) sgn <- 1
-      if (sgn < 0) {
-        B[[m]][, l]    <- -B[[m]][, l]
-        Zeta[[m]][, l] <- -Zeta[[m]][, l]
-      }
-    }
-
-    # 4. Ensure sum(A) >= 0 (shared loading); compensate in all B[[m]].
+    # 3. Ensure sum(A) >= 0 (shared loading); absorb sign into all B[[m]] (preserves product).
     sgn_A <- sign(sum(A[, l]))
     if (sgn_A == 0) sgn_A <- 1
     if (sgn_A < 0) {
@@ -520,5 +517,5 @@ revise_signs <- function(A, B, Zeta, Lambda, r, M) {
     B = B,
     Zeta = Zeta,
     Lambda = Lambda
-    ))
+  ))
 }
