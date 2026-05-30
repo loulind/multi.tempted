@@ -22,4 +22,7 @@ Encoding: UTF-8
 LazyData: true
 Imports: np (>= 0.60-17), ggplot2 (>= 3.4.0), methods (>= 4.2.1)
 LinkingTo: 
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
 Config/roxygen2/version: 8.0.0
