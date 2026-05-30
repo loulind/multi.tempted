@@ -387,6 +387,7 @@ update_b <- function(datlist_m, p_m, zeta_hat, tipos_m, ti_m, a_hat, n) {
 #' Regresses the vectorised residual data against the rank-1 reconstruction
 #' a_hat[i] * outer(b_hat, zeta_hat[grid_idx]).
 #'
+#' @importFrom stats lm
 #' @returns Named list: lambda (scalar), x_m (reconstruction vector).
 #' @noRd
 compute_lambda <- function(y_m, datlist_m, p_m, a_hat, b_hat, zeta_hat,
@@ -414,6 +415,7 @@ compute_lambda <- function(y_m, datlist_m, p_m, a_hat, b_hat, zeta_hat,
 #'
 #' For each modality, regresses y0 against the rank-r reconstruction matrix
 #' [x_1 | x_2 | ... | x_r] without intercept.
+#' @importFrom stats lm
 #' @noRd
 reestimate_lambda <- function(y0_per_modality, A, B, Zeta, prep, p, M, n, r) {
   Lambda <- matrix(0, M, r, dimnames = list(NULL, colnames(A)))
@@ -451,6 +453,7 @@ update_datlist <- function(datlist_m, p_m, a_hat, b_hat, zeta_hat,
 
 
 #' R-squared of regressing y on X (no intercept).
+#' @importFrom stats lm
 #' @noRd
 compute_rsq <- function(y, X) {
   return(summary(lm(y ~ X - 1))$r.squared)
