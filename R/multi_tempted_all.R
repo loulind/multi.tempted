@@ -1,9 +1,9 @@
 multiTEMPTED <- function(featuretables, timepoints, subjID) {
 
-  datlists <- format_multitempted(featuretables, timepoints, subjID)
+  # format data
   # svd centralize (option to remove constant time function from data if interested in time varying element)
-  decomp <- multi_tempted_decomp(datlists)
-  # odds ratio thing?
+  # decompose tensors
+  # odds ratio thing? metafeatures?
   # outputs list containing all pertinent output
 
 }
