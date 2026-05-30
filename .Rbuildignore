@@ -2,6 +2,7 @@
 ^\.Rproj\.user$
 ^\.positai$
 ^\.claude$
+start.sh
 ^README\.Rmd$
 Dockerfile
 Makefile
