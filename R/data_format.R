@@ -1,13 +1,3 @@
-#' Formatting for multiTEMPTED
-#'
-#' @param featuretables
-#' @param timepoints
-#' @param subjID
-#'
-#' @returns
-#' @export
-#'
-#' @examples
 format_multitempted <- function(featuretables, timepoints, subjID) {
   # 1. Checks validitiy of data
   # 2. Adjustment based on requested transformation
