@@ -14,6 +14,11 @@
 #' @param resolution Grid size for evaluating temporal loading functions. Default 101.
 #' @param maxiter Maximum iterations per component. Default 20.
 #' @param epsilon Convergence threshold on squared loading change. Default 1e-4.
+#' @param weights Length-M numeric vector of non-negative modality weights (w_1,...,w_M)
+#'   that scale the data-fit term for each modality in the objective function.
+#'   Larger weight = greater emphasis on that modality when estimating the shared
+#'   subject loading and each modality's temporal loading.
+#'   Default: equal weights (all 1).
 #' @return A list with:
 #'   \describe{
 #'     \item{A_hat}{Subject loading, n x r matrix (shared across modalities).}
@@ -27,7 +32,8 @@
 #' @export
 #' @md
 multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
-                                 resolution = 101, maxiter=20, epsilon=1e-4) {
+                                 resolution = 101, maxiter=20, epsilon=1e-4,
+                                 weights=NULL) {
     if (!(length(datlists) >= 1)) {
      stop("Must have a strictly positive number of modalities")
   }
@@ -46,6 +52,11 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
     }
     pm_vals[[1]]
   })
+
+  # Default to equal weights
+  if (is.null(weights)) weights <- rep(1, M)
+  if (length(weights) != M) stop("'weights' must have length equal to the number of modalities (M).")
+  if (any(weights < 0))    stop("'weights' must be non-negative.")
 
   # Initialize time intervals (rescale to [0,1], bin based on resolution, build kernel matrices)
   prep <- lapply(1:M, function(m) {
@@ -245,15 +256,19 @@ flatten_features <- function(datlist_m, p_m, tipos_m) {
 #' @param ind_vec Integer vector mapping each sample to its subject (1..n).
 #' @param Kmat Kernel matrix between all observed time points.
 #' @param Kmat_output Kernel matrix between resolution grid and observed points.
-#' @param smooth RKHS penalty weight.
+#' @param smooth RKHS penalty weight (C_mK in the objective).
+#' @param weight Modality weight (w_m in the objective). Scales the data term
+#'   relative to the RKHS penalty, so the normal equation becomes
+#'   (w_m * K_a + smooth * I) beta = w_m * cvec. Default 1.
 #' @noRd
-freg_rkhs <- function(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth = 1e-8) {
+freg_rkhs <- function(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth = 1e-8,
+                      weight = 1) {
   K <- Kmat
-  for (i in 1:Ly) {
+  for (i in seq_along(Ly)) {
     K[ind_vec == i, ] <- K[ind_vec == i, ] * a_hat[i]^2
   }
   cvec <- unlist(Ly)
-  beta <- solve(K + smooth * diag(ncol(K))) %*% cvec
+  beta <- solve(weight * K + smooth * diag(ncol(K))) %*% (weight * cvec)
 
   return(Kmat_output %*% beta)
 }
@@ -307,11 +322,11 @@ init_b_hat <- function(datlist_m, p_m, n) {
 #' vector on the resolution grid.
 #' @noRd
 update_zeta <- function(datlist_m, p_m, b_hat, a_hat, ind_vec,
-                        Kmat, Kmat_output, smooth) {
+                        Kmat, Kmat_output, smooth, weight = 1) {
   Ly <- lapply(seq_along(datlist_m), function(i)
     a_hat[i] * as.numeric(b_hat %*% datlist_m[[i]][2:(p_m + 1), ]))
 
-  zeta <- freg_rkhs(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth)
+  zeta <- freg_rkhs(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth, weight)
 
   return(zeta / sqrt(sum(zeta^2)))
 }
@@ -320,10 +335,10 @@ update_zeta <- function(datlist_m, p_m, b_hat, a_hat, ind_vec,
 #' Update shared subject loading (a_hat) by pooling signal across all modalities.
 #'
 #' For each subject i the optimal (unnormalised) a is:
-#'   numerator   = sum_m  b_m^T X_i^(m) zeta_i^(m)
-#'   denominator = sum_m  || zeta_i^(m) ||^2
+#'   numerator   = sum_m  w_m * b_m^T X_i^(m) zeta_i^(m)
+#'   denominator = sum_m  w_m * || zeta_i^(m) ||^2
 #' @noRd
-update_a <- function(datlists, p, b_hats, zeta_hats, prep, n, M) {
+update_a <- function(datlists, p, b_hats, zeta_hats, prep, n, M, weights) {
   a_tilde <- numeric(n)
 
   for (i in 1:n) {
@@ -333,9 +348,9 @@ update_a <- function(datlists, p, b_hats, zeta_hats, prep, n, M) {
       in_range <- prep[[m]]$tipos[[i]]
       grid_idx <- prep[[m]]$ti[[i]][in_range]
       zeta_i <- zeta_hats[[m]][grid_idx]
-      num <- num + as.numeric(
+      num <- num + weights[m] * as.numeric(
         b_hats[[m]] %*% datlists[[m]][[i]][2:(p[m] + 1), in_range] %*% zeta_i)
-      den <- den + sum(zeta_i^2)
+      den <- den + weights[m] * sum(zeta_i^2)
     }
     a_tilde[i] <- num / den
   }
