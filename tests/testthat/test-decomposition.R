@@ -1,8 +1,5 @@
 # Tests for R/decomposition.R
 #
-# Internal helpers are accessed via ::: (available when the package is loaded
-# with devtools::load_all(), which is what devtools::test() does).
-#
 # Test organisation mirrors the helper-function sections in decomposition.R:
 #   (1) bernoulli_kernel
 #   (2) init_time_intv
@@ -15,8 +12,7 @@
 #   (9) compute_lambda
 #  (10) update_datlist
 #  (11) revise_signs
-#  (12) multi_tempted_decomp  (integration)
-
+#  (12) multi_tempted_decomp (wrapper)
 
 # ==============================================================================
 # SHARED TEST FIXTURES
@@ -195,7 +191,7 @@ test_that("freg_rkhs output has length equal to resolution", {
   resolution <- 21
   inp <- make_freg_inputs(resolution = resolution)
   out <- multi.tempted:::freg_rkhs(inp$Ly, inp$a_hat, inp$ind_vec,
-                                    inp$Kmat, inp$Kmat_output, smooth = 1e-5)
+                                   inp$Kmat, inp$Kmat_output, smooth = 1e-5)
   expect_equal(length(out), resolution)
 })
 
@@ -204,18 +200,18 @@ test_that("freg_rkhs with weight > 1 gives a different result than weight = 1", 
   # so the two solutions differ in general.
   inp <- make_freg_inputs()
   r1  <- multi.tempted:::freg_rkhs(inp$Ly, inp$a_hat, inp$ind_vec,
-                                    inp$Kmat, inp$Kmat_output, smooth = 1e-3, weight = 1)
+                                   inp$Kmat, inp$Kmat_output, smooth = 1e-3, weight = 1)
   r5  <- multi.tempted:::freg_rkhs(inp$Ly, inp$a_hat, inp$ind_vec,
-                                    inp$Kmat, inp$Kmat_output, smooth = 1e-3, weight = 5)
+                                   inp$Kmat, inp$Kmat_output, smooth = 1e-3, weight = 5)
   expect_false(isTRUE(all.equal(r1, r5)))
 })
 
 test_that("freg_rkhs default weight = 1 matches explicit weight = 1", {
   inp     <- make_freg_inputs()
   default <- multi.tempted:::freg_rkhs(inp$Ly, inp$a_hat, inp$ind_vec,
-                                        inp$Kmat, inp$Kmat_output, smooth = 1e-5)
+                                       inp$Kmat, inp$Kmat_output, smooth = 1e-5)
   explicit <- multi.tempted:::freg_rkhs(inp$Ly, inp$a_hat, inp$ind_vec,
-                                         inp$Kmat, inp$Kmat_output, smooth = 1e-5, weight = 1)
+                                        inp$Kmat, inp$Kmat_output, smooth = 1e-5, weight = 1)
   expect_equal(default, explicit)
 })
 
@@ -244,8 +240,8 @@ test_that("update_zeta returns a unit-norm vector of length resolution", {
   b    <- multi.tempted:::init_b_hat(prep$datlist, p, n)
   a    <- rep(1 / sqrt(n), n)
   zeta <- multi.tempted:::update_zeta(prep$datlist, p, b, a,
-                                       prep$ind_vec, prep$Kmat, prep$Kmat_output,
-                                       smooth = 1e-5)
+                                      prep$ind_vec, prep$Kmat, prep$Kmat_output,
+                                      smooth = 1e-5)
   expect_equal(length(zeta), resolution)
   expect_equal(sum(zeta^2), 1, tolerance = 1e-10)
 })
@@ -257,11 +253,11 @@ test_that("update_zeta with weight = 1 matches the default (no weight argument)"
   b    <- multi.tempted:::init_b_hat(prep$datlist, p, n)
   a    <- rep(1 / sqrt(n), n)
   z_default <- multi.tempted:::update_zeta(prep$datlist, p, b, a,
-                                            prep$ind_vec, prep$Kmat, prep$Kmat_output,
-                                            smooth = 1e-5)
+                                           prep$ind_vec, prep$Kmat, prep$Kmat_output,
+                                           smooth = 1e-5)
   z_w1      <- multi.tempted:::update_zeta(prep$datlist, p, b, a,
-                                            prep$ind_vec, prep$Kmat, prep$Kmat_output,
-                                            smooth = 1e-5, weight = 1)
+                                           prep$ind_vec, prep$Kmat, prep$Kmat_output,
+                                           smooth = 1e-5, weight = 1)
   expect_equal(z_default, z_w1)
 })
 
@@ -280,8 +276,8 @@ make_update_inputs <- function(M = 2, n = 3, p = 4, seed = 42) {
   a_hat    <- rep(1 / sqrt(n), n)
   zeta_hats <- lapply(seq_len(M), function(m)
     multi.tempted:::update_zeta(dl_prep[[m]], p, b_hats[[m]], a_hat,
-                                 preps[[m]]$ind_vec, preps[[m]]$Kmat,
-                                 preps[[m]]$Kmat_output, smooth = 1e-5))
+                                preps[[m]]$ind_vec, preps[[m]]$Kmat,
+                                preps[[m]]$Kmat_output, smooth = 1e-5))
   list(datlists = dl_prep, preps = preps, b_hats = b_hats,
        a_hat = a_hat, zeta_hats = zeta_hats, M = M, n = n, p = p)
 }
@@ -289,8 +285,8 @@ make_update_inputs <- function(M = 2, n = 3, p = 4, seed = 42) {
 test_that("update_a returns a unit-norm vector of length n", {
   inp   <- make_update_inputs()
   a_new <- multi.tempted:::update_a(inp$datlists, rep(inp$p, inp$M), inp$b_hats,
-                                     inp$zeta_hats, inp$preps, inp$n, inp$M,
-                                     weights = rep(1, inp$M))
+                                    inp$zeta_hats, inp$preps, inp$n, inp$M,
+                                    weights = rep(1, inp$M))
   expect_equal(length(a_new), inp$n)
   expect_equal(sum(a_new^2), 1, tolerance = 1e-10)
 })
@@ -300,9 +296,9 @@ test_that("update_a result is unchanged when all weights are scaled by a constan
   inp    <- make_update_inputs()
   p_vec  <- rep(inp$p, inp$M)
   a_w1   <- multi.tempted:::update_a(inp$datlists, p_vec, inp$b_hats, inp$zeta_hats,
-                                      inp$preps, inp$n, inp$M, weights = c(1, 1))
+                                     inp$preps, inp$n, inp$M, weights = c(1, 1))
   a_w5   <- multi.tempted:::update_a(inp$datlists, p_vec, inp$b_hats, inp$zeta_hats,
-                                      inp$preps, inp$n, inp$M, weights = c(5, 5))
+                                     inp$preps, inp$n, inp$M, weights = c(5, 5))
   expect_equal(a_w1, a_w5, tolerance = 1e-10)
 })
 
@@ -313,10 +309,10 @@ test_that("update_a with weight = 0 on one modality ignores that modality", {
   p_vec <- rep(inp$p, inp$M)
 
   a_both <- multi.tempted:::update_a(inp$datlists, p_vec, inp$b_hats, inp$zeta_hats,
-                                      inp$preps, inp$n, inp$M, weights = c(1, 0))
+                                     inp$preps, inp$n, inp$M, weights = c(1, 0))
   a_mod1 <- multi.tempted:::update_a(inp$datlists[1], p_vec[1], inp$b_hats[1],
-                                      inp$zeta_hats[1], inp$preps[1],
-                                      inp$n, M = 1, weights = 1)
+                                     inp$zeta_hats[1], inp$preps[1],
+                                     inp$n, M = 1, weights = 1)
   expect_equal(a_both, a_mod1, tolerance = 1e-10)
 })
 
@@ -324,9 +320,9 @@ test_that("update_a result differs when one modality has a much larger weight", 
   inp   <- make_update_inputs()
   p_vec <- rep(inp$p, inp$M)
   a_eq  <- multi.tempted:::update_a(inp$datlists, p_vec, inp$b_hats, inp$zeta_hats,
-                                     inp$preps, inp$n, inp$M, weights = c(1, 1))
+                                    inp$preps, inp$n, inp$M, weights = c(1, 1))
   a_sk  <- multi.tempted:::update_a(inp$datlists, p_vec, inp$b_hats, inp$zeta_hats,
-                                     inp$preps, inp$n, inp$M, weights = c(100, 1))
+                                    inp$preps, inp$n, inp$M, weights = c(100, 1))
   expect_false(isTRUE(all.equal(a_eq, a_sk)))
 })
 
@@ -342,9 +338,9 @@ test_that("update_b returns a unit-norm vector of length p_m", {
   b    <- multi.tempted:::init_b_hat(prep$datlist, p, n)
   a    <- rep(1 / sqrt(n), n)
   zeta <- multi.tempted:::update_zeta(prep$datlist, p, b, a,
-                                       prep$ind_vec, prep$Kmat, prep$Kmat_output, 1e-5)
+                                      prep$ind_vec, prep$Kmat, prep$Kmat_output, 1e-5)
   b_new <- multi.tempted:::update_b(prep$datlist, p, zeta,
-                                     prep$tipos, prep$ti, a, n)
+                                    prep$tipos, prep$ti, a, n)
   expect_equal(length(b_new), p)
   expect_equal(sum(b_new^2), 1, tolerance = 1e-10)
 })
@@ -361,10 +357,10 @@ test_that("compute_lambda returns a scalar lambda and an x_m of the right length
   b     <- multi.tempted:::init_b_hat(prep$datlist, p, n)
   a     <- rep(1 / sqrt(n), n)
   zeta  <- multi.tempted:::update_zeta(prep$datlist, p, b, a,
-                                        prep$ind_vec, prep$Kmat, prep$Kmat_output, 1e-5)
+                                       prep$ind_vec, prep$Kmat, prep$Kmat_output, 1e-5)
   y_m   <- multi.tempted:::flatten_features(prep$datlist, p, prep$tipos)
   result <- multi.tempted:::compute_lambda(y_m, prep$datlist, p, a, b, zeta,
-                                            prep$tipos, prep$ti, n)
+                                           prep$tipos, prep$ti, n)
 
   expect_true(is.numeric(result$lambda) && length(result$lambda) == 1)
   expected_x_len <- p * sum(sapply(seq_len(n), function(i) sum(prep$tipos[[i]])))
@@ -395,7 +391,7 @@ test_that("compute_lambda x_m reconstructs the observed data up to a scale", {
 
   y_m    <- multi.tempted:::flatten_features(prep$datlist, p, prep$tipos)
   result <- multi.tempted:::compute_lambda(y_m, prep$datlist, p, a_unit, b_unit,
-                                            zeta_unit, prep$tipos, prep$ti, n)
+                                           zeta_unit, prep$tipos, prep$ti, n)
   # lambda should be positive and recover meaningful signal
   expect_gt(result$lambda, 0)
 })
@@ -420,8 +416,8 @@ test_that("update_datlist removes the rank-1 contribution from in-range samples"
 
   dl_orig     <- prep$datlist
   dl_deflated <- multi.tempted:::update_datlist(prep$datlist, p, a_hat, b_hat,
-                                                 zeta_hat, lambda,
-                                                 prep$tipos, prep$ti, n)
+                                                zeta_hat, lambda,
+                                                prep$tipos, prep$ti, n)
 
   for (i in seq_len(n)) {
     in_range <- which(prep$tipos[[i]])
@@ -447,8 +443,8 @@ test_that("update_datlist leaves out-of-range samples and time row unchanged", {
 
   dl_orig     <- prep$datlist
   dl_deflated <- multi.tempted:::update_datlist(prep$datlist, p, a_hat, b_hat,
-                                                 zeta_hat, lambda_ml = 1,
-                                                 prep$tipos, prep$ti, n)
+                                                zeta_hat, lambda_ml = 1,
+                                                prep$tipos, prep$ti, n)
 
   for (i in seq_len(n)) {
     out_of_range <- which(!prep$tipos[[i]])
@@ -469,7 +465,7 @@ test_that("update_datlist leaves out-of-range samples and time row unchanged", {
 
 # Shared setup for revise_signs tests
 make_sign_inputs <- function(r = 2, M = 2, n = 3, p = 4, resolution = 10,
-                              seed = 99) {
+                             seed = 99) {
   set.seed(seed)
   A      <- matrix(rnorm(n * r), n, r)
   B      <- lapply(seq_len(M), function(m) matrix(rnorm(p * r), p, r))
@@ -481,32 +477,36 @@ make_sign_inputs <- function(r = 2, M = 2, n = 3, p = 4, resolution = 10,
 test_that("revise_signs makes all Lambda values non-negative", {
   inp    <- make_sign_inputs()
   result <- multi.tempted:::revise_signs(inp$A, inp$B, inp$Zeta, inp$Lambda,
-                                          inp$r, inp$M)
+                                         inp$r, inp$M)
   expect_true(all(result$Lambda >= 0))
 })
 
 test_that("revise_signs makes sum(Zeta[[m]][, l]) non-negative for all m, l", {
   inp    <- make_sign_inputs()
   result <- multi.tempted:::revise_signs(inp$A, inp$B, inp$Zeta, inp$Lambda,
-                                          inp$r, inp$M)
+                                         inp$r, inp$M)
   for (m in seq_len(inp$M)) {
     expect_true(all(colSums(result$Zeta[[m]]) >= 0))
   }
 })
 
-test_that("revise_signs makes sum(B[[m]][, l]) non-negative for all m, l", {
+test_that("revise_signs does not guarantee sum(B[[m]][, l]) >= 0", {
+  # sum(B) is NOT part of the sign convention: enforcing it simultaneously with
+  # sum(Zeta) >= 0 creates a circular flip (each correction undoes the other).
+  # B is instead used as the sign sink that absorbs corrections for Lambda and Zeta.
+  # This test simply verifies the function runs without error; it does NOT assert
+  # that sum(B) is non-negative.
   inp    <- make_sign_inputs()
   result <- multi.tempted:::revise_signs(inp$A, inp$B, inp$Zeta, inp$Lambda,
-                                          inp$r, inp$M)
-  for (m in seq_len(inp$M)) {
-    expect_true(all(colSums(result$B[[m]]) >= 0))
-  }
+                                         inp$r, inp$M)
+  expect_true(is.list(result))
+  expect_named(result, c("A", "B", "Zeta", "Lambda"))
 })
 
 test_that("revise_signs makes sum(A[, l]) non-negative for all l", {
   inp    <- make_sign_inputs()
   result <- multi.tempted:::revise_signs(inp$A, inp$B, inp$Zeta, inp$Lambda,
-                                          inp$r, inp$M)
+                                         inp$r, inp$M)
   expect_true(all(colSums(result$A) >= 0))
 })
 
@@ -527,7 +527,7 @@ test_that("revise_signs preserves the rank-1 reconstruction for each modality", 
 
   recon_after <- lapply(seq_len(M), function(m)
     result$Lambda[m, 1] * outer(result$A[, 1],
-                                 as.vector(outer(result$B[[m]][, 1], result$Zeta[[m]][, 1]))))
+                                as.vector(outer(result$B[[m]][, 1], result$Zeta[[m]][, 1]))))
 
   for (m in seq_len(M)) {
     expect_equal(recon_before[[m]], recon_after[[m]], tolerance = 1e-10)
@@ -565,7 +565,7 @@ test_that("multi_tempted_decomp returns a correctly named list", {
   dl     <- make_datlists(M = 2, n = 3, p = 4)
   result <- suppressMessages(multi_tempted_decomp(dl, r = 1, maxiter = 3))
   expect_named(result, c("A_hat", "B_hat", "Zeta_hat", "time_Zeta",
-                          "Lambda", "r_square", "accum_r_square"))
+                         "Lambda", "r_square", "accum_r_square"))
 })
 
 test_that("multi_tempted_decomp output dimensions are correct", {
@@ -657,7 +657,7 @@ test_that("multi_tempted_decomp NULL weights gives the same result as explicit e
     multi_tempted_decomp(dl, r = 1, smooth = 1e-5, maxiter = 10))
   r_ones <- suppressMessages(
     multi_tempted_decomp(dl, r = 1, smooth = 1e-5, maxiter = 10,
-                          weights = c(1, 1)))
+                         weights = c(1, 1)))
   expect_equal(r_null$A_hat,  r_ones$A_hat,  tolerance = 1e-10)
   expect_equal(r_null$Lambda, r_ones$Lambda, tolerance = 1e-10)
 })
@@ -666,10 +666,10 @@ test_that("multi_tempted_decomp results differ when weights are very unequal", {
   dl     <- make_datlists(M = 2, n = 3, p = 4, seed = 88)
   r_eq   <- suppressMessages(
     multi_tempted_decomp(dl, r = 1, smooth = 1e-5, maxiter = 10,
-                          weights = c(1, 1)))
+                         weights = c(1, 1)))
   r_sk   <- suppressMessages(
     multi_tempted_decomp(dl, r = 1, smooth = 1e-5, maxiter = 10,
-                          weights = c(100, 1)))
+                         weights = c(100, 1)))
   expect_false(isTRUE(all.equal(r_eq$A_hat, r_sk$A_hat)))
 })
 
