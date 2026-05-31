@@ -26,19 +26,23 @@
 #'     \item{Zeta_hat}{Length-M list of temporal loading matrices (resolution x r).}
 #'     \item{time_Zeta}{Length-M list of time grids for Zeta (original time scale).}
 #'     \item{Lambda}{M x r matrix of modality-specific scales.}
-#'     \item{r_square}{Variance explained per component (pooled across modalities).}
-#'     \item{accum_r_square}{Accumulated variance explained by first l components.}
+#'     \item{r_square}{M x r matrix. r_square[m, l] is the R-squared of component
+#'       l's rank-1 reconstruction against the current residual for modality m
+#'       (i.e. after deflating components 1..l-1).}
+#'     \item{accum_r_square}{M x r matrix. accum_r_square[m, l] is the R-squared
+#'       of the first l components' joint reconstruction against the original
+#'       (pre-deflation) data for modality m.}
 #'   }
 #' @export
 #' @md
 multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
                                  resolution = 101, maxiter=20, epsilon=1e-4,
                                  weights=NULL) {
-    if (!(length(datlists) >= 1)) {
-     stop("Must have a strictly positive number of modalities")
+  if (!(length(datlists) >= 1)) {
+    stop("Must have a strictly positive number of modalities")
   }
-    if (length(unique(lengths(datlists))) != 1) {
-      stop("All modalities must have the same number of subjects.")
+  if (length(unique(lengths(datlists))) != 1) {
+    stop("All modalities must have the same number of subjects.")
   }
 
   # Initialize data dimensions
@@ -70,14 +74,13 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   B <- lapply(1:M, function(m) matrix(0, p[m], r)) # list of feature loading matrices
   Zeta <- lapply(1:M, function(m) matrix(0, resolution, r)) # list of time loading fns
   Lambda <- matrix(0, M, r)  # modality-specific scalings
-  Rsq <- numeric(r)
-  accumRsq <- numeric(r)
+  Rsq      <- matrix(0, M, r)  # per-modality R-squared, one value per (modality, component)
+  accumRsq <- matrix(0, M, r)  # per-modality accumulated R-squared
 
-  # Flatten original data for accumulated R-sqr tracking
+  # Flatten original data for accumulated R-sqr tracking (one vector per modality)
   y0_per_modality <- lapply(1:M, function(m)
     flatten_features(datlists[[m]], p[m], prep[[m]]$tipos))
-  y0_all  <- unlist(y0_per_modality)
-  X_accum <- NULL  # grows one column per component
+  X_accum <- vector("list", M)  # per-modality design matrix; grows one column per component
 
   # SEQUENTIAL ESTIMATION ALGORITHM
   for (l in 1:r) {
@@ -110,7 +113,7 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
       # (c) Feature loading: update b for each modality independently
       for (m in 1:M) {
         b_new <- update_b(datlists[[m]], p[m], zeta_hats[[m]],
-                                prep[[m]]$tipos, prep[[m]]$ti, a_hat, n)
+                          prep[[m]]$tipos, prep[[m]]$ti, a_hat, n)
         dif <- max(dif, sum((b_hats[[m]] - b_new)^2))
         b_hats[[m]] <- b_new
       }
@@ -118,31 +121,29 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
     }
     message(sprintf("  Converged: dif = %.2e after %d iterations", dif, iter))
 
-    # STEP 3: Est'm modality-specific scales (lambda) & Remove l'th component
-    # Recording component values
+    # STEP 3: Est'm modality-specific scales (lambda), R-squared, & remove l'th component
     A[, l] <- a_hat # record estimated a
-    x_comp <- NULL # rank-1 reconstruction vectorized across all modalities
     for (m in 1:M) {
-      B[[m]][, l] <- b_hats[[m]]  # record estimated b
-      Zeta[[m]][, l] <- zeta_hats[[m]]  # record estimated zeta
+      B[[m]][, l]    <- b_hats[[m]]   # record estimated b
+      Zeta[[m]][, l] <- zeta_hats[[m]] # record estimated zeta
 
-      lm_result <- compute_lambda(y_resid[[m]], datlists[[m]], p[m],
+      lm_result    <- compute_lambda(y_resid[[m]], datlists[[m]], p[m],
                                      a_hat, b_hats[[m]], zeta_hats[[m]],
                                      prep[[m]]$tipos, prep[[m]]$ti, n)
-      Lambda[m, l] <- lm_result$lambda # update lambda
-      x_comp <- c(x_comp, lm_result$x_m)
-    }
+      Lambda[m, l] <- lm_result$lambda
 
-    # R-squared for this component and accumulated total (pooled across modalities)
-    Rsq[l] <- compute_rsq(unlist(y_resid), x_comp)
-    X_accum <- cbind(X_accum, x_comp)
-    accumRsq[l] <- compute_rsq(y0_all, X_accum)
+      # Per-modality R-squared: component l against current residual
+      Rsq[m, l]      <- compute_rsq(y_resid[[m]], lm_result$x_m)
+      # Per-modality accumulated R-squared: components 1..l against original data
+      X_accum[[m]]   <- cbind(X_accum[[m]], lm_result$x_m)
+      accumRsq[m, l] <- compute_rsq(y0_per_modality[[m]], X_accum[[m]])
+    }
 
     # Remove l'th component contribution from datlists
     for (m in 1:M) {
       datlists[[m]] <- update_datlist(datlists[[m]], p[m], a_hat, b_hats[[m]],
-                                       zeta_hats[[m]], Lambda[m, l],
-                                       prep[[m]]$tipos, prep[[m]]$ti, n)
+                                      zeta_hats[[m]], Lambda[m, l],
+                                      prep[[m]]$tipos, prep[[m]]$ti, n)
     }
   }
   # STEP 4: After est'm all r components, re-est'm modality scales
@@ -171,7 +172,7 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
     Lambda = Lambda,
     r_square = Rsq,
     accum_r_square = accumRsq
-    ))
+  ))
 }
 
 
@@ -228,7 +229,7 @@ init_time_intv <- function(datlist_m, p_m, n, interval_m, resolution) {
     Kmat_output = Kmat_output,
     input_time_range = input_time_range,
     interval = interval_m
-    ))
+  ))
 }
 
 
@@ -402,7 +403,7 @@ compute_lambda <- function(y_m, datlist_m, p_m, a_hat, b_hat, zeta_hat,
   return(list(
     lambda = lambda,
     x_m = x_m
-    ))
+  ))
 }
 
 
