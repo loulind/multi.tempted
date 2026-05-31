@@ -580,8 +580,8 @@ test_that("multi_tempted_decomp output dimensions are correct", {
   expect_equal(length(result$Zeta_hat), M)
   expect_equal(dim(result$Zeta_hat[[1]]), c(resolution, r))
   expect_equal(dim(result$Lambda), c(M, r))
-  expect_equal(length(result$r_square), r)
-  expect_equal(length(result$accum_r_square), r)
+  expect_equal(dim(result$r_square), c(M, r))
+  expect_equal(dim(result$accum_r_square), c(M, r))
   expect_equal(length(result$time_Zeta), M)
   expect_equal(length(result$time_Zeta[[1]]), resolution)
 })
@@ -625,17 +625,25 @@ test_that("multi_tempted_decomp Lambda values are all non-negative", {
 })
 
 test_that("multi_tempted_decomp r_square and accum_r_square are in [0, 1]", {
-  dl     <- make_datlists(M = 2, n = 3, p = 4)
-  result <- suppressMessages(multi_tempted_decomp(dl, r = 2, maxiter = 5))
-  expect_true(all(result$r_square     >= 0 & result$r_square     <= 1))
+  M <- 2; r <- 2
+  dl     <- make_datlists(M = M, n = 3, p = 4)
+  result <- suppressMessages(multi_tempted_decomp(dl, r = r, maxiter = 5))
+  expect_equal(dim(result$r_square),       c(M, r))
+  expect_equal(dim(result$accum_r_square), c(M, r))
+  expect_true(all(result$r_square       >= 0 & result$r_square       <= 1))
   expect_true(all(result$accum_r_square >= 0 & result$accum_r_square <= 1))
 })
 
-test_that("multi_tempted_decomp accum_r_square is non-decreasing", {
-  dl     <- make_datlists(M = 2, n = 3, p = 4)
+test_that("multi_tempted_decomp accum_r_square is non-decreasing across components for each modality", {
+  M  <- 2
+  dl <- make_datlists(M = M, n = 3, p = 4)
   result <- suppressMessages(multi_tempted_decomp(dl, r = 3, maxiter = 5))
-  diffs  <- diff(result$accum_r_square)
-  expect_true(all(diffs >= -1e-10))
+  # For each modality row, accumulated R-sq should not decrease as l grows
+  for (m in seq_len(M)) {
+    diffs <- diff(result$accum_r_square[m, ])
+    expect_true(all(diffs >= -1e-10),
+                label = sprintf("accum_r_square non-decreasing for modality %d", m))
+  }
 })
 
 test_that("multi_tempted_decomp time_Zeta is within the observed time range", {
@@ -675,9 +683,13 @@ test_that("multi_tempted_decomp results differ when weights are very unequal", {
 
 # --- Recovery of known structure ----------------------------------------------
 
-test_that("multi_tempted_decomp r_square[1] > 0.9 on near-exact rank-1 data", {
-  dl     <- make_rank1_datlists(M = 2, n = 4, p = 5, n_times = 8)
+test_that("multi_tempted_decomp r_square[m, 1] > 0.9 for every modality on near-exact rank-1 data", {
+  M      <- 2
+  dl     <- make_rank1_datlists(M = M, n = 4, p = 5, n_times = 8)
   result <- suppressMessages(
     multi_tempted_decomp(dl, r = 1, smooth = 1e-5, maxiter = 20))
-  expect_gt(result$r_square[1], 0.9)
+  for (m in seq_len(M)) {
+    expect_gt(result$r_square[m, 1], 0.9,
+              label = sprintf("r_square[%d, 1]", m))
+  }
 })
