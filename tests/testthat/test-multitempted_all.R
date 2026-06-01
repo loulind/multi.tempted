@@ -37,10 +37,12 @@ make_wrapper_input <- function(M = 2, n = 4, p = 5, n_times = 3, seed = 42) {
 }
 
 # Run multitempted_all with quiet messages and fast settings.
-run_wrapper <- function(dat, ...) {
+# r, resolution, and transforms are explicit parameters (not forwarded through ...)
+# so tests can override them without triggering "matched by multiple actual arguments".
+run_wrapper <- function(dat, r = 1, resolution = 11, transforms = "none", ...) {
   suppressMessages(
     multitempted_all(dat$featuretables, dat$timepoints, dat$subjectID,
-                     transforms = "none", r = 1, resolution = 11,
+                     transforms = transforms, r = r, resolution = resolution,
                      maxiter = 2, ...))
 }
 
@@ -177,7 +179,7 @@ test_that("multitempted_all returns all nine expected output elements", {
   dat    <- make_wrapper_input()
   result <- run_wrapper(dat)
   expect_named(result, c("datlists", "mean_svd", "A_hat", "B_hat", "Zeta_hat",
-                          "time_Zeta", "Lambda", "r_square", "accum_r_square"))
+                         "time_Zeta", "Lambda", "r_square", "accum_r_square"))
 })
 
 test_that("A_hat is an n x r matrix", {
@@ -261,9 +263,9 @@ test_that("datlists in output is the pre-centralisation data, not the centralise
 
   # Direct format_tempted call for reference
   expected_datlist <- format_tempted(featuretable = dat$featuretables[[1]],
-                                      timepoint    = dat$timepoints,
-                                      subjectID    = dat$subjectID,
-                                      transform    = "none")
+                                     timepoint    = dat$timepoints,
+                                     subjectID    = dat$subjectID,
+                                     transform    = "none")
 
   # Feature rows of result$datlists should match the formatted-but-not-centralised data
   for (i in seq_along(expected_datlist)) {
