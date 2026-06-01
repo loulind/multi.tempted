@@ -82,12 +82,9 @@
 #' @md
 multitempted_all <- function(featuretables, timepoints, subjectID,
                              threshold = 0.95, pseudo = NULL, transforms = "clr",
-                             r = 3, smooth = 1e-8,
-                             interval = NULL, resolution = 101,
-                             maxiter = 20, epsilon = 1e-4,
-                             centralize = TRUE, r_svd = 1,
-                             weights = NULL) {
-
+                             r = 3, smooth = 1e-8, interval = NULL, resolution = 101,
+                             maxiter = 20, epsilon = 1e-4, centralize = TRUE,
+                             r_svd = 1, weights = NULL) {
   M <- length(featuretables)
   if (M < 1) stop("'featuretables' must contain at least one modality.")
   if (is.null(names(featuretables))) { # auto names modalities if none specified
@@ -96,9 +93,9 @@ multitempted_all <- function(featuretables, timepoints, subjectID,
 
   # User can designate length 1 or length M list for parameters
   if (!is.list(timepoints)) timepoints <- replicate(M, timepoints, simplify = FALSE)
-  if (!is.list(subjectID)) subjectID  <- replicate(M, subjectID, simplify = FALSE)
+  if (!is.list(subjectID)) subjectID <- replicate(M, subjectID, simplify = FALSE)
   if (length(transforms) == 1) transforms <- rep(transforms, M)
-  if (length(threshold)  == 1) threshold  <- rep(threshold,  M)
+  if (length(threshold) == 1) threshold <- rep(threshold,  M)
   if (!is.list(pseudo)) pseudo <- replicate(M, pseudo, simplify = FALSE)
 
   if (length(timepoints) != M) stop("'timepoints' must be length 1 or length M.")
@@ -131,32 +128,28 @@ multitempted_all <- function(featuretables, timepoints, subjectID,
 
   # Remove mean structure (if specified)
   if (centralize) {
-    mean_svd       <- svd_centralize(datlists, r = r_svd)
+    mean_svd <- svd_centralize(datlists, r = r_svd)
     datlists_decomp <- mean_svd$datlists
   } else {
-    mean_svd        <- NULL
+    mean_svd <- NULL
     datlists_decomp <- datlists
   }
 
   # Decomposition
-  res_decomp <- multi_tempted_decomp(datlists   = datlists_decomp,
-                                     r          = r,
-                                     smooth     = smooth,
-                                     interval   = interval,
-                                     resolution = resolution,
-                                     maxiter    = maxiter,
-                                     epsilon    = epsilon,
-                                     weights    = weights)
+  res_decomp <- multi_tempted_decomp(datlists = datlists_decomp, r = r,
+                                     smooth = smooth, interval = interval,
+                                     resolution = resolution, maxiter = maxiter,
+                                     epsilon = epsilon, weights = weights)
 
   return(list(
-    datlists       = datlists,
-    mean_svd       = mean_svd,
-    A_hat          = res_decomp$A_hat,
-    B_hat          = res_decomp$B_hat,
-    Zeta_hat       = res_decomp$Zeta_hat,
-    time_Zeta      = res_decomp$time_Zeta,
-    Lambda         = res_decomp$Lambda,
-    r_square       = res_decomp$r_square,
+    datlists = datlists,
+    mean_svd = mean_svd,
+    A_hat = res_decomp$A_hat,
+    B_hat = res_decomp$B_hat,
+    Zeta_hat = res_decomp$Zeta_hat,
+    time_Zeta = res_decomp$time_Zeta,
+    Lambda = res_decomp$Lambda,
+    r_square = res_decomp$r_square,
     accum_r_square = res_decomp$accum_r_square
   ))
 }
