@@ -61,7 +61,9 @@ svd_centralize <- function(datlists, r = 1) {
 
     # Step 2: Rank-r SVD of the subject-by-feature mean matrix
     mean_svd  <- svd(mean_hat, nu = r, nv = r)
-    mean_rank_r <- mean_svd$u %*% t(mean_svd$v * mean_svd$d[1:r])
+    # sweep() scales column j of V by d[j]; avoids R's element-wise recycling
+    # which incorrectly mixes d values across rows of V when r > 1.
+    mean_rank_r <- mean_svd$u %*% t(sweep(mean_svd$v, 2, mean_svd$d[1:r], "*"))
 
     # Step 3: Subtract the subject's mean profile from every time point
     for (i in seq_len(n)) {
