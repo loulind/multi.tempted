@@ -2,8 +2,8 @@
 
 export(format_tempted)
 export(multi_tempted_decomp)
+export(multitempted_all)
 export(svd_centralize)
-export(tempted_all)
 importFrom(ggplot2,aes)
 importFrom(ggplot2,facet_wrap)
 importFrom(ggplot2,geom_line)
