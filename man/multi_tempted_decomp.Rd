@@ -47,8 +47,12 @@ A list with:
 \item{Zeta_hat}{Length-M list of temporal loading matrices (resolution x r).}
 \item{time_Zeta}{Length-M list of time grids for Zeta (original time scale).}
 \item{Lambda}{M x r matrix of modality-specific scales.}
-\item{r_square}{Variance explained per component (pooled across modalities).}
-\item{accum_r_square}{Accumulated variance explained by first l components.}
+\item{r_square}{M x r matrix. \code{r_square[m, l]} is the R-squared of component
+l's rank-1 reconstruction against the current residual for modality m
+(i.e. after deflating components 1..l-1).}
+\item{accum_r_square}{M x r matrix. \code{accum_r_square[m, l]} is the R-squared
+of the first l components' joint reconstruction against the original
+(pre-deflation) data for modality m.}
 }
 }
 \description{
