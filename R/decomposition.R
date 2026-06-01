@@ -163,6 +163,8 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
       prep[[m]]$input_time_range[1]
   })
   names(time_Zeta) <- names(datlists)
+  names(B) <- names(datlists)
+  names(Zeta) <- names(datlists)
 
   return(list(
     A_hat = A,
