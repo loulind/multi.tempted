@@ -40,15 +40,19 @@ Default \code{transform="clr"} is recommended for microbiome data.
 For data that are already transformed, use \code{transform="none"}.}
 }
 \value{
-A length n list of matrices as the input of \code{\link{tempted}} and \code{\link{svd_centralize}}.  Each matrix represents a subject, with columns representing samples from this subject, the first row representing the sampling time points, and the following rows representing the feature values.
+A length n list of matrices as the input of
+\code{\link{multi_tempted_decomp}} and
+\code{\link{svd_centralize}}.
+Each matrix represents a subject, with columns representing samples from this subject,
+the first row representing the sampling time points, and the following rows representing the feature values.
 }
 \description{
 This function applies a variety of transformations to the read counts and
 format the sample by feature table and meta data into a data list
-that can be used as the input of \code{\link{tempted}} and \code{\link{svd_centralize}}.
+that can be used as the input of \code{\link{multi_tempted_decomp}} and \code{\link{svd_centralize}}.
 For data that are not read counts, or data that are not microbiome data,
 the user can apply their desired transformation to the data before formatting into list.
 }
 \seealso{
-Examples can be found in \code{\link{tempted}}.
+Examples can be found in \code{\link{multi_tempted_decomp}}.
 }
