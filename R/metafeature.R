@@ -8,6 +8,7 @@
 #' @param mean_svd Output of \code{\link{svd_centralize}}, or \code{NULL}.
 #' @return Length-M named list of (n x p_m x resolution) arrays, with the
 #'   third-dimension names set to the original-scale time grid.
+#' @importFrom stats setNames
 #' @noRd
 tdenoise <- function(res_decomp, mean_svd = NULL) {
   A <- res_decomp$A_hat
@@ -51,7 +52,7 @@ tdenoise <- function(res_decomp, mean_svd = NULL) {
 #' @param datlists Length-M named list of formatted (and transformed) data,
 #'   one datlist per modality (output of \code{\link{format_tempted}} per modality).
 #' @param pct Fraction of features to aggregate, ranked by absolute loading.
-#'   Default 1 (all features). Setting \code{pct = 0.01} uses the top 1\%.
+#'   Default 1 (all features). Setting \code{pct = 0.01} uses the top 1 percent.
 #' @param contrast An r x K matrix whose columns combine components via a linear
 #'   contrast of the feature loadings, or \code{NULL}.
 #' @return A list:
@@ -164,7 +165,7 @@ aggregate_feature <- function(res_decomp, mean_svd = NULL, datlists,
 #'   \code{\link{multitempted_all}}.
 #' @param datlists_raw Length-M named list of raw (untransformed,
 #'   \code{transform = "none"}) data, one datlist per modality.
-#' @param pct Fraction of features to select. Default 0.05 (5\%).
+#' @param pct Fraction of features to select. Default 0.05 (5 percent).
 #' @param absolute If \code{TRUE}, rank by |loading| and use sign to determine
 #'   top/bottom. If \code{FALSE} (default), rank by loading value directly.
 #' @param contrast An r x K contrast matrix, or \code{NULL}.

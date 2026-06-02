@@ -13,20 +13,9 @@
 #'   bandwidth selection.
 #' @param nrow Number of rows for \code{ggplot2::facet_wrap()}. Default 1.
 #' @return A ggplot2 object.
-#' @examples
-#' # plot the summary of selected features
-#'
-#' feat.names <- c("OTU4447072", "OTU4467447")
-#'
-#' proportion_table <- count_table/rowSums(count_table)
-#'
-#' plot_feature_summary(proportion_table[,feat.names],
-#'                      meta_table$day_of_life,
-#'                      meta_table$delivery,
-#'                      bws=30)
 #' @importFrom np npreg
 #' @importFrom ggplot2 ggplot aes geom_line geom_ribbon ylab facet_wrap
-#' @importFrom stats qnorm
+#' @importFrom stats qnorm setNames
 #' @export
 #' @md
 plot_feature_summary <- function(feature_mat, time_vec, group_vec,
