@@ -22,7 +22,7 @@ aggregate_feature(
 one datlist per modality (output of \code{\link{format_tempted}} per modality).}
 
 \item{pct}{Fraction of features to aggregate, ranked by absolute loading.
-Default 1 (all features). Setting \code{pct = 0.01} uses the top 1\\%.}
+Default 1 (all features). Setting \code{pct = 0.01} uses the top 1 percent.}
 
 \item{contrast}{An r x K matrix whose columns combine components via a linear
 contrast of the feature loadings, or \code{NULL}.}

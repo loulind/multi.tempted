@@ -19,7 +19,7 @@ ratio_feature(
 \item{datlists_raw}{Length-M named list of raw (untransformed,
 \code{transform = "none"}) data, one datlist per modality.}
 
-\item{pct}{Fraction of features to select. Default 0.05 (5\\%).}
+\item{pct}{Fraction of features to select. Default 0.05 (5 percent).}
 
 \item{absolute}{If \code{TRUE}, rank by |loading| and use sign to determine
 top/bottom. If \code{FALSE} (default), rank by loading value directly.}

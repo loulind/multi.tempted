@@ -38,15 +38,3 @@ A ggplot2 object.
 Plots the smoothed mean and error bands for multiple features,
 grouped by a factor variable. Each feature is shown as a separate facet.
 }
-\examples{
-# plot the summary of selected features
-
-feat.names <- c("OTU4447072", "OTU4467447")
-
-proportion_table <- count_table/rowSums(count_table)
-
-plot_feature_summary(proportion_table[,feat.names],
-                     meta_table$day_of_life,
-                     meta_table$delivery,
-                     bws=30)
-}
