@@ -41,6 +41,16 @@ format_tempted <- function(featuretable, timepoint, subjectID,
     stop('length of subjectID does not match featuretable!')
   if (length(timepoint)!=nrow(featuretable))
     stop('length of timepoint does not match featuretable!')
+  # Check for negative values when a log-type transform is requested.
+  log_transforms <- c("clr", "logcomp", "logit", "lfb")
+  if (transform %in% log_transforms && any(featuretable < 0, na.rm = TRUE)) {
+    stop(paste0(
+      "transform = \"", transform, "\" requires non-negative feature values, ",
+      "but the data contains ", sum(featuretable < 0, na.rm = TRUE),
+      " negative value(s). If the data are already log-transformed or ",
+      "otherwise pre-processed, use transform = \"none\"."
+    ))
+  }
   # get pseudo count
   if (is.null(pseudo) & (transform %in% c("clr", "logcomp", "logit"))){
     pseudo <- apply(featuretable, 1, function(x){
