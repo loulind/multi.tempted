@@ -2,7 +2,7 @@
 #
 # multitempted_all is a wrapper around format_tempted, svd_centralize, and
 # multi_tempted_decomp.  These tests focus on the wrapper's own logic:
-#   - input validation and scalar-to-list broadcasting
+#   - input validation
 #   - subject ordering alignment across modalities
 #   - the centralize toggle
 #   - output structure and naming
@@ -18,13 +18,13 @@
 # ==============================================================================
 
 # Build a minimal, valid multitempted_all input.
-# Returns a list with featuretables (named), timepoints, and subjectID.
-# All feature values are positive so every transform option is safe.
+# timepoints and subjectID are returned as length-M lists, matching the
+# required API where each modality supplies its own sample metadata.
 make_wrapper_input <- function(M = 2, n = 4, p = 5, n_times = 3, seed = 42) {
   set.seed(seed)
-  n_samples  <- n * n_times
-  subj_id    <- rep(paste0("s", seq_len(n)),  each  = n_times)
-  times      <- rep(seq_len(n_times),         times = n)
+  n_samples <- n * n_times
+  subj_id   <- rep(paste0("s", seq_len(n)), each  = n_times)
+  times     <- rep(seq_len(n_times),        times = n)
 
   tables <- lapply(seq_len(M), function(m) {
     mat <- matrix(abs(rnorm(n_samples * p)) + 1, nrow = n_samples, ncol = p)
@@ -33,12 +33,16 @@ make_wrapper_input <- function(M = 2, n = 4, p = 5, n_times = 3, seed = 42) {
   })
   names(tables) <- paste0("mod", seq_len(M))
 
-  list(featuretables = tables, timepoints = times, subjectID = subj_id)
+  list(
+    featuretables = tables,
+    timepoints    = replicate(M, times,   simplify = FALSE),
+    subjectID     = replicate(M, subj_id, simplify = FALSE)
+  )
 }
 
 # Run multitempted_all with quiet messages and fast settings.
-# r, resolution, and transforms are explicit parameters (not forwarded through ...)
-# so tests can override them without triggering "matched by multiple actual arguments".
+# r, resolution, and transforms are explicit parameters so tests can override
+# them without triggering "matched by multiple actual arguments".
 run_wrapper <- function(dat, r = 1, resolution = 11, transforms = "none", ...) {
   suppressMessages(
     multitempted_all(dat$featuretables, dat$timepoints, dat$subjectID,
@@ -53,12 +57,13 @@ run_wrapper <- function(dat, r = 1, resolution = 11, transforms = "none", ...) {
 
 test_that("multitempted_all errors when timepoints list length != M", {
   dat <- make_wrapper_input(M = 2)
+  # Wrap the full list in another list to make length 1 instead of 2
   expect_error(
     suppressMessages(
       multitempted_all(dat$featuretables,
-                       timepoints = list(dat$timepoints),   # length 1 instead of 2
+                       timepoints = list(dat$timepoints[[1]]),   # length 1, M = 2
                        dat$subjectID, transforms = "none", r = 1, maxiter = 2)),
-    "length 1 or length M"
+    "length M"
   )
 })
 
@@ -67,10 +72,9 @@ test_that("multitempted_all errors when subjectID list length != M", {
   expect_error(
     suppressMessages(
       multitempted_all(dat$featuretables, dat$timepoints,
-                       subjectID = list(dat$subjectID, dat$subjectID,
-                                        dat$subjectID),   # length 3 instead of 2
+                       subjectID = c(dat$subjectID, dat$subjectID[1]),  # length 3, M = 2
                        transforms = "none", r = 1, maxiter = 2)),
-    "length 1 or length M"
+    "length M"
   )
 })
 
@@ -79,7 +83,7 @@ test_that("multitempted_all errors when transforms length != 1 and != M", {
   expect_error(
     suppressMessages(
       multitempted_all(dat$featuretables, dat$timepoints, dat$subjectID,
-                       transforms = c("none", "none", "none"),  # length 3 for M=2
+                       transforms = c("none", "none", "none"),   # length 3, M = 2
                        r = 1, maxiter = 2)),
     "length 1 or length M"
   )
@@ -90,7 +94,7 @@ test_that("multitempted_all errors when threshold length != 1 and != M", {
   expect_error(
     suppressMessages(
       multitempted_all(dat$featuretables, dat$timepoints, dat$subjectID,
-                       threshold = c(0.9, 0.9, 0.9),   # length 3 for M=2
+                       threshold = c(0.9, 0.9, 0.9),   # length 3, M = 2
                        transforms = "none", r = 1, maxiter = 2)),
     "length 1 or length M"
   )
@@ -99,11 +103,11 @@ test_that("multitempted_all errors when threshold length != 1 and != M", {
 test_that("multitempted_all errors when modalities end up with different subjects", {
   dat <- make_wrapper_input(M = 2, n = 4)
   # Give modality 2 a different fourth subject
-  subj_mod2 <- sub("s4", "s99", dat$subjectID)
+  subj_mod2 <- sub("s4", "s99", dat$subjectID[[2]])
   expect_error(
     suppressMessages(
       multitempted_all(dat$featuretables, dat$timepoints,
-                       subjectID  = list(dat$subjectID, subj_mod2),
+                       subjectID  = list(dat$subjectID[[1]], subj_mod2),
                        transforms = "none", r = 1, maxiter = 2)),
     "different subjects"
   )
@@ -116,7 +120,7 @@ test_that("multitempted_all errors when modalities end up with different subject
 
 test_that("unnamed featuretables get default names 'modality1', 'modality2', ...", {
   dat <- make_wrapper_input(M = 2)
-  names(dat$featuretables) <- NULL   # strip names
+  names(dat$featuretables) <- NULL
   result <- run_wrapper(dat)
   expect_equal(names(result$datlists), c("modality1", "modality2"))
 })
@@ -125,22 +129,38 @@ test_that("featuretable names propagate to datlists, B_hat, Zeta_hat, time_Zeta"
   dat <- make_wrapper_input(M = 2)
   names(dat$featuretables) <- c("stool", "sputum")
   result <- run_wrapper(dat)
-  expect_equal(names(result$datlists),   c("stool", "sputum"))
-  expect_equal(names(result$B_hat),      c("stool", "sputum"))
-  expect_equal(names(result$Zeta_hat),   c("stool", "sputum"))
-  expect_equal(names(result$time_Zeta),  c("stool", "sputum"))
+  expect_equal(names(result$datlists),  c("stool", "sputum"))
+  expect_equal(names(result$B_hat),     c("stool", "sputum"))
+  expect_equal(names(result$Zeta_hat),  c("stool", "sputum"))
+  expect_equal(names(result$time_Zeta), c("stool", "sputum"))
 })
 
-test_that("scalar timepoints and subjectID broadcast identically to explicit lists", {
-  dat    <- make_wrapper_input(M = 2)
-  r_scalar <- run_wrapper(dat)
-  r_list   <- suppressMessages(
-    multitempted_all(dat$featuretables,
-                     timepoints = list(dat$timepoints, dat$timepoints),
-                     subjectID  = list(dat$subjectID,  dat$subjectID),
-                     transforms = "none", r = 1, resolution = 11, maxiter = 2))
-  expect_equal(r_scalar$A_hat,   r_list$A_hat)
-  expect_equal(r_scalar$Lambda,  r_list$Lambda)
+test_that("modalities with different numbers of time points per subject are accepted", {
+  # The per-modality list API is specifically designed to support this case:
+  # different subjects × time structure in each modality.
+  set.seed(99)
+  n <- 3; p <- 4
+
+  make_mod <- function(n_tp) {
+    n_samp <- n * n_tp
+    list(
+      table    = {m <- matrix(abs(rnorm(n_samp * p)) + 1, n_samp, p);
+      colnames(m) <- paste0("f", seq_len(p)); m},
+      times    = rep(seq_len(n_tp), times = n),
+      subjects = rep(paste0("s", seq_len(n)), each = n_tp)
+    )
+  }
+  m1 <- make_mod(3)
+  m2 <- make_mod(4)   # different number of time points
+
+  result <- suppressMessages(
+    multitempted_all(
+      featuretables = list(mod1 = m1$table, mod2 = m2$table),
+      timepoints    = list(m1$times,    m2$times),
+      subjectID     = list(m1$subjects, m2$subjects),
+      transforms = "none", r = 1, resolution = 11, maxiter = 2))
+
+  expect_equal(dim(result$A_hat), c(n, 1))
 })
 
 
@@ -155,13 +175,13 @@ test_that("subjects in different row orders across modalities are aligned consis
   set.seed(7)
   shuf <- sample(nrow(dat$featuretables[[2]]))
   dat$featuretables[[2]] <- dat$featuretables[[2]][shuf, ]
-  subj_mod2 <- dat$subjectID[shuf]
-  time_mod2 <- dat$timepoints[shuf]
+  subj_mod2 <- dat$subjectID[[2]][shuf]
+  time_mod2 <- dat$timepoints[[2]][shuf]
 
   result <- suppressMessages(
     multitempted_all(dat$featuretables,
-                     timepoints = list(dat$timepoints, time_mod2),
-                     subjectID  = list(dat$subjectID,  subj_mod2),
+                     timepoints = list(dat$timepoints[[1]], time_mod2),
+                     subjectID  = list(dat$subjectID[[1]],  subj_mod2),
                      transforms = "none", r = 1, resolution = 11, maxiter = 2))
 
   # After alignment, every modality's datlists must have subjects in the same order
@@ -245,8 +265,7 @@ test_that("centralize = TRUE produces a non-NULL mean_svd with the expected stru
   dat    <- make_wrapper_input()
   result <- run_wrapper(dat, centralize = TRUE, r_svd = 1)
   expect_false(is.null(result$mean_svd))
-  expect_named(result$mean_svd,
-               c("datlists", "A_tilde", "B_tilde", "lambda_tilde"))
+  expect_named(result$mean_svd, c("datlists", "A_tilde", "B_tilde", "lambda_tilde"))
 })
 
 test_that("centralize = FALSE leaves mean_svd as NULL", {
@@ -261,23 +280,22 @@ test_that("datlists in output is the pre-centralisation data, not the centralise
   dat    <- make_wrapper_input(M = 1)
   result <- run_wrapper(dat, centralize = TRUE, r_svd = 1)
 
-  # Direct format_tempted call for reference
+  # Direct format_tempted call for reference — use [[1]] since dat$timepoints
+  # and dat$subjectID are now length-M lists.
   expected_datlist <- format_tempted(featuretable = dat$featuretables[[1]],
-                                     timepoint    = dat$timepoints,
-                                     subjectID    = dat$subjectID,
+                                     timepoint    = dat$timepoints[[1]],
+                                     subjectID    = dat$subjectID[[1]],
                                      transform    = "none")
 
-  # Feature rows of result$datlists should match the formatted-but-not-centralised data
   for (i in seq_along(expected_datlist)) {
     expect_equal(result$datlists[[1]][[i]][-1, ],
                  expected_datlist[[i]][-1, ],
                  label = sprintf("datlists subject %d features", i))
   }
 
-  # Feature rows of the centralised version should differ from the raw formatted data
-  centralised_feats  <- result$mean_svd$datlists[[1]][[1]][-1, ]
-  uncentralised_feats <- result$datlists[[1]][[1]][-1, ]
-  expect_false(isTRUE(all.equal(centralised_feats, uncentralised_feats)))
+  # Centralised feature rows should differ from the raw formatted values
+  expect_false(isTRUE(all.equal(result$mean_svd$datlists[[1]][[1]][-1, ],
+                                result$datlists[[1]][[1]][-1, ])))
 })
 
 
@@ -286,9 +304,9 @@ test_that("datlists in output is the pre-centralisation data, not the centralise
 # ==============================================================================
 
 test_that("NULL weights gives the same result as explicit equal weights", {
-  dat      <- make_wrapper_input(seed = 55)
-  r_null   <- run_wrapper(dat, weights = NULL)
-  r_equal  <- run_wrapper(dat, weights = c(1, 1))
+  dat     <- make_wrapper_input(seed = 55)
+  r_null  <- run_wrapper(dat, weights = NULL)
+  r_equal <- run_wrapper(dat, weights = c(1, 1))
   expect_equal(r_null$A_hat,  r_equal$A_hat,  tolerance = 1e-10)
   expect_equal(r_null$Lambda, r_equal$Lambda, tolerance = 1e-10)
 })
@@ -312,6 +330,6 @@ test_that("per-modality transforms (vector) give same result as scalar when equa
     multitempted_all(dat$featuretables, dat$timepoints, dat$subjectID,
                      transforms = c("none", "none"),
                      r = 1, resolution = 11, maxiter = 2))
-  expect_equal(r_scalar$A_hat,  r_vector$A_hat)
+  expect_equal(r_scalar$A_hat,    r_vector$A_hat)
   expect_equal(r_scalar$datlists, r_vector$datlists)
 })
