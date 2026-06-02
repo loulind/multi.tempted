@@ -14,14 +14,10 @@
 #' @param featuretables A length-M **named** list of sample-by-feature matrices,
 #'   one per modality. The list names become modality labels throughout all output.
 #'   If unnamed, modalities are labelled \code{"modality1"}, \code{"modality2"}, etc.
-#' @param timepoints Either a single numeric vector of time stamps shared by all
-#'   modalities (rows of every feature table must be in the same sample order),
-#'   or a length-M list of numeric vectors matched row-wise to each
-#'   \code{featuretables[[m]]}.
-#' @param subjectID Either a single character/integer vector of subject IDs shared
-#'   by all modalities, or a length-M list of such vectors matched row-wise to
-#'   each \code{featuretables[[m]]}. All modalities must ultimately contain the
-#'   same set of subjects.
+#' @param timepoints a length-M list of numeric vectors,
+#'    matched row-wise to each \code{featuretables[[m]]}.
+#' @param subjectID A length M list of lists of subject ID's of each sample,
+#'    matched with the rows of \code{featuretable[[m]]}
 #' @param threshold Scalar (applied to all modalities) or length-M numeric vector.
 #'   Features with zero-value percentage above this threshold are excluded.
 #'   Default 0.95. Passed to \code{\link{format_tempted}}.
@@ -92,14 +88,12 @@ multitempted_all <- function(featuretables, timepoints, subjectID,
   }
 
   # User can designate length 1 or length M list for parameters
-  if (!is.list(timepoints)) timepoints <- replicate(M, timepoints, simplify = FALSE)
-  if (!is.list(subjectID)) subjectID <- replicate(M, subjectID, simplify = FALSE)
   if (length(transforms) == 1) transforms <- rep(transforms, M)
   if (length(threshold) == 1) threshold <- rep(threshold,  M)
   if (!is.list(pseudo)) pseudo <- replicate(M, pseudo, simplify = FALSE)
 
-  if (length(timepoints) != M) stop("'timepoints' must be length 1 or length M.")
-  if (length(subjectID) != M) stop("'subjectID' must be length 1 or length M.")
+  if (length(timepoints) != M) stop("'timepoints' must be length M.")
+  if (length(subjectID) != M) stop("'subjectID' must be length M.")
   if (length(transforms) != M) stop("'transforms' must be length 1 or length M.")
   if (length(threshold) != M) stop("'threshold' must be length 1 or length M.")
 
