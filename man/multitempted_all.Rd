@@ -19,7 +19,12 @@ multitempted_all(
   epsilon = 1e-04,
   centralize = TRUE,
   r_svd = 1,
-  weights = NULL
+  weights = NULL,
+  do_ratio = TRUE,
+  pct_ratio = 0.05,
+  absolute = FALSE,
+  pct_aggregate = 1,
+  contrast = NULL
 )
 }
 \arguments{
@@ -78,6 +83,23 @@ Only used when \code{centralize = TRUE}. Default 1.}
 \item{weights}{Length-M non-negative numeric vector of modality weights for
 the decomposition objective. \code{NULL} (default) gives equal weight to
 all modalities. Passed to \code{\link{multi_tempted_decomp}}.}
+
+\item{do_ratio}{Logical. If \code{TRUE} (default), computes log-ratio
+meta-features via \code{\link{ratio_feature}}. Set to \code{FALSE} for
+data that are not raw counts.}
+
+\item{pct_ratio}{Fraction of features used for the log-ratio numerator and
+denominator. Default 0.05. Passed to \code{\link{ratio_feature}}.}
+
+\item{absolute}{Logical passed to \code{\link{ratio_feature}}. Default
+\code{FALSE}.}
+
+\item{pct_aggregate}{Fraction of features aggregated per component. Default
+1 (all features). Passed to \code{\link{aggregate_feature}}.}
+
+\item{contrast}{An r x K contrast matrix combining components, or
+\code{NULL}. Passed to both \code{\link{ratio_feature}} and
+\code{\link{aggregate_feature}}.}
 }
 \value{
 A named list with the following elements:
@@ -96,6 +118,19 @@ original time scale.}
 (modality, component).}
 \item{accum_r_square}{M x r matrix of accumulated per-modality R-squared
 values across the first l components.}
+\item{metafeature_ratio}{Data frame of log-ratio meta-features (if
+\code{do_ratio = TRUE}), with columns \code{value}, \code{subID},
+\code{timepoint}, \code{PC}, \code{modality}.}
+\item{toppct_ratio}{Length-M list of logical matrices indicating
+numerator features per component (if \code{do_ratio = TRUE}).}
+\item{bottompct_ratio}{Length-M list of logical matrices indicating
+denominator features per component (if \code{do_ratio = TRUE}).}
+\item{metafeature_aggregate}{Data frame of aggregated meta-features, with
+columns \code{value}, \code{subID}, \code{timepoint}, \code{PC},
+\code{modality}.}
+\item{toppct_aggregate}{Length-M list of logical matrices indicating which
+features are aggregated per component.}
+\item{contrast}{The contrast matrix from input.}
 }
 }
 \description{
