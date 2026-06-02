@@ -43,11 +43,13 @@ make_wrapper_input <- function(M = 2, n = 4, p = 5, n_times = 3, seed = 42) {
 # Run multitempted_all with quiet messages and fast settings.
 # r, resolution, and transforms are explicit parameters so tests can override
 # them without triggering "matched by multiple actual arguments".
-run_wrapper <- function(dat, r = 1, resolution = 11, transforms = "none", ...) {
+# do_ratio = FALSE keeps the output predictable for tests using random data.
+run_wrapper <- function(dat, r = 1, resolution = 11, transforms = "none",
+                        do_ratio = FALSE, ...) {
   suppressMessages(
     multitempted_all(dat$featuretables, dat$timepoints, dat$subjectID,
                      transforms = transforms, r = r, resolution = resolution,
-                     maxiter = 2, ...))
+                     maxiter = 2, do_ratio = do_ratio, ...))
 }
 
 
@@ -195,11 +197,22 @@ test_that("subjects in different row orders across modalities are aligned consis
 # OUTPUT STRUCTURE
 # ==============================================================================
 
-test_that("multitempted_all returns all nine expected output elements", {
+test_that("multitempted_all without ratio returns the core decomposition elements", {
   dat    <- make_wrapper_input()
-  result <- run_wrapper(dat)
-  expect_named(result, c("datlists", "mean_svd", "A_hat", "B_hat", "Zeta_hat",
-                         "time_Zeta", "Lambda", "r_square", "accum_r_square"))
+  result <- run_wrapper(dat, do_ratio = FALSE)
+  core <- c("datlists", "mean_svd", "A_hat", "B_hat", "Zeta_hat",
+            "time_Zeta", "Lambda", "r_square", "accum_r_square",
+            "metafeature_aggregate", "toppct_aggregate", "contrast")
+  expect_true(all(core %in% names(result)))
+  expect_false("metafeature_ratio" %in% names(result))
+})
+
+test_that("multitempted_all with do_ratio = TRUE adds ratio output elements", {
+  dat    <- make_wrapper_input()
+  result <- run_wrapper(dat, do_ratio = TRUE)
+  expect_true("metafeature_ratio"  %in% names(result))
+  expect_true("toppct_ratio"       %in% names(result))
+  expect_true("bottompct_ratio"    %in% names(result))
 })
 
 test_that("A_hat is an n x r matrix", {
