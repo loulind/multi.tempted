@@ -52,6 +52,18 @@
 #' @param weights Length-M non-negative numeric vector of modality weights for
 #'   the decomposition objective. \code{NULL} (default) gives equal weight to
 #'   all modalities. Passed to \code{\link{multi_tempted_decomp}}.
+#' @param do_ratio Logical. If \code{TRUE} (default), computes log-ratio
+#'   meta-features via \code{\link{ratio_feature}}. Set to \code{FALSE} for
+#'   data that are not raw counts.
+#' @param pct_ratio Fraction of features used for the log-ratio numerator and
+#'   denominator. Default 0.05. Passed to \code{\link{ratio_feature}}.
+#' @param absolute Logical passed to \code{\link{ratio_feature}}. Default
+#'   \code{FALSE}.
+#' @param pct_aggregate Fraction of features aggregated per component. Default
+#'   1 (all features). Passed to \code{\link{aggregate_feature}}.
+#' @param contrast An r x K contrast matrix combining components, or
+#'   \code{NULL}. Passed to both \code{\link{ratio_feature}} and
+#'   \code{\link{aggregate_feature}}.
 #' @return A named list with the following elements:
 #' \describe{
 #'   \item{datlists}{Length-M list of formatted (and transformed) data, output
@@ -68,6 +80,19 @@
 #'     (modality, component).}
 #'   \item{accum_r_square}{M x r matrix of accumulated per-modality R-squared
 #'     values across the first l components.}
+#'   \item{metafeature_ratio}{Data frame of log-ratio meta-features (if
+#'     \code{do_ratio = TRUE}), with columns \code{value}, \code{subID},
+#'     \code{timepoint}, \code{PC}, \code{modality}.}
+#'   \item{toppct_ratio}{Length-M list of logical matrices indicating
+#'     numerator features per component (if \code{do_ratio = TRUE}).}
+#'   \item{bottompct_ratio}{Length-M list of logical matrices indicating
+#'     denominator features per component (if \code{do_ratio = TRUE}).}
+#'   \item{metafeature_aggregate}{Data frame of aggregated meta-features, with
+#'     columns \code{value}, \code{subID}, \code{timepoint}, \code{PC},
+#'     \code{modality}.}
+#'   \item{toppct_aggregate}{Length-M list of logical matrices indicating which
+#'     features are aggregated per component.}
+#'   \item{contrast}{The contrast matrix from input.}
 #' }
 #' @references
 #' Shi P, Martino C, Han R, Janssen S, Buck G, Serrano M, Owzar K, Knight R,
@@ -80,11 +105,13 @@ multitempted_all <- function(featuretables, timepoints, subjectID,
                              threshold = 0.95, pseudo = NULL, transforms = "clr",
                              r = 3, smooth = 1e-8, interval = NULL, resolution = 101,
                              maxiter = 20, epsilon = 1e-4, centralize = TRUE,
-                             r_svd = 1, weights = NULL) {
+                             r_svd = 1, weights = NULL,
+                             do_ratio = TRUE, pct_ratio = 0.05, absolute = FALSE,
+                             pct_aggregate = 1, contrast = NULL) {
   M <- length(featuretables)
   if (M < 1) stop("'featuretables' must contain at least one modality.")
   if (is.null(names(featuretables))) { # auto names modalities if none specified
-    names(featuretables) <- paste0("modality", seq_len(M))
+    names(featuretables) <- paste0("modality", 1:M)
   }
 
   # User can designate length 1 or length M list for parameters
@@ -98,7 +125,7 @@ multitempted_all <- function(featuretables, timepoints, subjectID,
   if (length(threshold) != M) stop("'threshold' must be length 1 or length M.")
 
   # Format data
-  datlists <- lapply(seq_len(M), function(m) {
+  datlists <- lapply(1:M, function(m) {
     format_tempted(featuretable = featuretables[[m]],
                    timepoint = timepoints[[m]],
                    subjectID = subjectID[[m]],
@@ -111,7 +138,7 @@ multitempted_all <- function(featuretables, timepoints, subjectID,
   # Verify all modalities share the same subject set; reorder to a common order.
   subj_sets <- lapply(datlists, names)
   ref_subjs <- subj_sets[[1]]
-  for (m in seq_len(M)) {
+  for (m in 1:M) {
     if (!setequal(subj_sets[[m]], ref_subjs)) {
       stop(sprintf(
         "Modality '%s' has different subjects than modality '%s' after formatting.",
@@ -129,13 +156,25 @@ multitempted_all <- function(featuretables, timepoints, subjectID,
     datlists_decomp <- datlists
   }
 
+  # Format raw (untransformed) data for ratio_feature
+  datlists_raw <- lapply(1:M, function(m) {
+    format_tempted(featuretable = featuretables[[m]],
+                   timepoint = timepoints[[m]],
+                   subjectID = subjectID[[m]],
+                   threshold = threshold[m],
+                   pseudo = pseudo[[m]],
+                   transform = "none")
+  })
+  names(datlists_raw) <- names(featuretables)
+  for (m in 1:M) datlists_raw[[m]] <- datlists_raw[[m]][ref_subjs]
+
   # Decomposition
   res_decomp <- multi_tempted_decomp(datlists = datlists_decomp, r = r,
                                      smooth = smooth, interval = interval,
                                      resolution = resolution, maxiter = maxiter,
                                      epsilon = epsilon, weights = weights)
 
-  return(list(
+  res_all <- list(
     datlists = datlists,
     mean_svd = mean_svd,
     A_hat = res_decomp$A_hat,
@@ -145,5 +184,27 @@ multitempted_all <- function(featuretables, timepoints, subjectID,
     Lambda = res_decomp$Lambda,
     r_square = res_decomp$r_square,
     accum_r_square = res_decomp$accum_r_square
-  ))
+  )
+
+  if (do_ratio) {
+    res_ratio <- ratio_feature(res_decomp = res_decomp,
+                               datlists_raw = datlists_raw,
+                               pct = pct_ratio,
+                               absolute = absolute,
+                               contrast = contrast)
+    res_all$metafeature_ratio <- res_ratio$metafeature_ratio
+    res_all$toppct_ratio <- res_ratio$toppct
+    res_all$bottompct_ratio <- res_ratio$bottompct
+  }
+
+  res_aggfeat <- aggregate_feature(res_decomp = res_decomp,
+                                   mean_svd = mean_svd,
+                                   datlists = datlists,
+                                   pct = pct_aggregate,
+                                   contrast = contrast)
+  res_all$metafeature_aggregate <- res_aggfeat$metafeature_aggregate
+  res_all$toppct_aggregate <- res_aggfeat$toppct
+  res_all["contrast"] <- list(contrast)
+
+  return(res_all)
 }
