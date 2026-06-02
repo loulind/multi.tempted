@@ -27,15 +27,11 @@ multitempted_all(
 one per modality. The list names become modality labels throughout all output.
 If unnamed, modalities are labelled \code{"modality1"}, \code{"modality2"}, etc.}
 
-\item{timepoints}{Either a single numeric vector of time stamps shared by all
-modalities (rows of every feature table must be in the same sample order),
-or a length-M list of numeric vectors matched row-wise to each
-\code{featuretables[[m]]}.}
+\item{timepoints}{a length-M list of numeric vectors,
+matched row-wise to each \code{featuretables[[m]]}.}
 
-\item{subjectID}{Either a single character/integer vector of subject IDs shared
-by all modalities, or a length-M list of such vectors matched row-wise to
-each \code{featuretables[[m]]}. All modalities must ultimately contain the
-same set of subjects.}
+\item{subjectID}{A length M list of lists of subject ID's of each sample,
+matched with the rows of \code{featuretable[[m]]}}
 
 \item{threshold}{Scalar (applied to all modalities) or length-M numeric vector.
 Features with zero-value percentage above this threshold are excluded.
