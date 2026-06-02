@@ -1,11 +1,171 @@
-plot_feature_summary <- function() {
+#' @title Plot nonparametric smoothed mean and error bands of features versus time
+#' @description Plots the smoothed mean and error bands for multiple features,
+#'   grouped by a factor variable. Each feature is shown as a separate facet.
+#' @param feature_mat A sample by feature matrix. The features can be original
+#'   features, meta-features, log ratios, or any variables of interest.
+#' @param time_vec A vector of time points matched to the rows of
+#'   \code{feature_mat}.
+#' @param group_vec A factor variable indicating group membership of samples,
+#'   matched to the rows of \code{feature_mat}.
+#' @param coverage Coverage rate for the error band. Default 0.95.
+#' @param bws Bandwidth for the smoothing lines and error bands. A larger value
+#'   means a smoother line. Default \code{NULL} uses \code{np::npreg()} with AIC
+#'   bandwidth selection.
+#' @param nrow Number of rows for \code{ggplot2::facet_wrap()}. Default 1.
+#' @return A ggplot2 object.
+#' @examples
+#' # plot the summary of selected features
+#'
+#' feat.names <- c("OTU4447072", "OTU4467447")
+#'
+#' proportion_table <- count_table/rowSums(count_table)
+#'
+#' plot_feature_summary(proportion_table[,feat.names],
+#'                      meta_table$day_of_life,
+#'                      meta_table$delivery,
+#'                      bws=30)
+#' @importFrom np npreg
+#' @importFrom ggplot2 ggplot aes geom_line geom_ribbon ylab facet_wrap
+#' @importFrom stats qnorm
+#' @export
+#' @md
+plot_feature_summary <- function(feature_mat, time_vec, group_vec,
+                                 coverage = 0.95, bws = NULL, nrow = 1) {
+  nfeature <- ncol(feature_mat)
+  if (!is(group_vec, "factor")) group_vec <- as.factor(group_vec)
+  group_level <- levels(group_vec)
+  CI_length <- -qnorm((1 - coverage) / 2)
 
+  if (is.null(colnames(feature_mat))) stop("feature_mat needs to have column names!")
+
+  time_all <- NULL
+  mean_all <- NULL
+  merr_all <- NULL
+  feature_all <- NULL
+  group_all <- NULL
+
+  for (jj in 1:nfeature) {
+    for (ii in seq_along(group_level)) {
+      ind <- group_vec == group_level[ii]
+      if (is.null(bws)) {
+        model_np <- npreg(feature_mat[ind, jj] ~ time_vec[ind],
+                          regtype = "ll", bwmethod = "cv.aic")
+      } else {
+        model_np <- npreg(feature_mat[ind, jj] ~ time_vec[ind], bws = bws,
+                          regtype = "ll", bwmethod = "cv.aic")
+      }
+      time_eval <- as.vector(t(model_np$eval))
+      ord <- order(time_eval)
+      time_all <- c(time_all,  sort(time_eval))
+      mean_all <- c(mean_all,  model_np$mean[ord])
+      merr_all <- c(merr_all,  model_np$merr[ord])
+      feature_all <- c(feature_all, rep(colnames(feature_mat)[jj], length(time_eval)))
+      group_all <- c(group_all,   rep(group_level[ii],           length(time_eval)))
+    }
+  }
+
+  group_all <- factor(group_all, levels = group_level)
+  tab_summary <- data.frame(time_all = time_all, mean_all = mean_all,
+                            merr_all = merr_all, group_all = group_all,
+                            feature_all = feature_all)
+  .data <- NULL
+
+  ggplot(data = tab_summary,
+         aes(x = .data$time_all, y = .data$mean_all,
+             group = .data$group_all, color = .data$group_all)) +
+    geom_line() +
+    geom_ribbon(aes(ymin = .data$mean_all - CI_length * .data$merr_all,
+                    ymax = .data$mean_all + CI_length * .data$merr_all,
+                    color = .data$group_all, fill = .data$group_all),
+                linetype = 2, alpha = 0.3) +
+    ylab(paste0("mean +/- ", round(CI_length, 2), "*se")) +
+    facet_wrap(~ .data$feature_all, scales = "free", nrow = nrow)
 }
 
-plot_metafeature <- function() {
 
+#' @title Plot smoothed mean and error bands of meta-features versus time
+#' @description Plots the smoothed mean and error bands of meta-features grouped
+#'   by a factor variable. For multi-modality output, returns a named list of
+#'   ggplot2 objects, one per modality.
+#' @param metafeature \code{metafeature_ratio} from \code{\link{ratio_feature}}
+#'   or \code{\link{multitempted_all}}, or \code{metafeature_aggregate} from
+#'   \code{\link{aggregate_feature}} or \code{\link{multitempted_all}}. Must
+#'   contain columns \code{value}, \code{subID}, \code{timepoint}, \code{PC},
+#'   and \code{modality}.
+#' @param group A subject x 2 data frame: first column is subject ID, second
+#'   column is group membership.
+#' @param coverage Coverage rate for the error band. Default 0.95.
+#' @param bws Bandwidth for smoothing. Default \code{NULL} uses AIC selection.
+#' @param nrow Number of rows for \code{ggplot2::facet_wrap()}. Default 1.
+#' @return A named list of ggplot2 objects, one per modality.
+#' @seealso \code{\link{aggregate_feature}}, \code{\link{ratio_feature}},
+#'   \code{\link{multitempted_all}}.
+#' @export
+#' @md
+plot_metafeature <- function(metafeature, group,
+                             coverage = 0.95, bws = NULL, nrow = 1) {
+  colnames(group) <- c("subID", "group")
+  tab <- merge(metafeature, group, by = "subID")
+  mod_names <- unique(tab$modality)
+
+  plots <- lapply(setNames(mod_names, mod_names), function(mod) {
+    tab_mod <- tab[tab$modality == mod, ]
+
+    reshape_tab <- reshape(tab_mod[, c("subID", "timepoint", "group", "PC", "value")],
+                           idvar = c("subID", "timepoint", "group"),
+                           v.names = "value",
+                           timevar = "PC",
+                           direction = "wide")
+    CC <- grep("^value\\.", colnames(reshape_tab))
+    colnames(reshape_tab)[CC] <- paste0(
+      sub("^value\\.", "", colnames(reshape_tab)[CC]), " (", mod, ")")
+
+    feature_mat <- reshape_tab[, CC, drop = FALSE]
+    time_vec <- reshape_tab$timepoint
+    group_vec <- factor(reshape_tab$group)
+
+    plot_feature_summary(feature_mat, time_vec, group_vec,
+                         coverage = coverage, bws = bws, nrow = nrow)
+  })
+
+  return(plots)
 }
 
-plot_time_loading <- function() {
 
+#' @title Plot the temporal loading functions (multi-modality)
+#' @description Plots the temporal loading functions (\code{Zeta_hat}) estimated
+#'   by \code{\link{multi_tempted_decomp}}, faceted by modality and coloured by
+#'   component.
+#' @param res Output of \code{\link{multi_tempted_decomp}} or
+#'   \code{\link{multitempted_all}}.
+#' @param r Number of components to plot. Default: all components in \code{res}.
+#' @param ... Additional aesthetics passed to \code{ggplot2::geom_line()}.
+#' @return A ggplot2 object.
+#' @seealso \code{\link{multitempted_all}}, \code{\link{multi_tempted_decomp}}.
+#' @importFrom ggplot2 ggplot aes geom_line facet_wrap
+#' @export
+#' @md
+plot_time_loading <- function(res, r = NULL, ...) {
+  M <- length(res$Zeta_hat)
+  mod_names <- names(res$Zeta_hat)
+  if (is.null(r)) r <- ncol(res$Zeta_hat[[1]])
+
+  plot_data <- do.call(rbind, lapply(1:M, function(m) {
+    Zeta_m <- res$Zeta_hat[[m]][, 1:r, drop = FALSE]
+    ntime <- nrow(Zeta_m)
+    data.frame(
+      timepoint = rep(res$time_Zeta[[m]], r),
+      value = as.vector(Zeta_m),
+      component = factor(rep(1:r, each = ntime)),
+      modality = mod_names[m],
+      stringsAsFactors = FALSE
+    )
+  }))
+
+  .data <- NULL
+
+  ggplot(plot_data,
+         aes(x = .data$timepoint, y = .data$value, color = .data$component)) +
+    geom_line(aes(...)) +
+    facet_wrap(~ .data$modality, scales = "free_x")
 }
