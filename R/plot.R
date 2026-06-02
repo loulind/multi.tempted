@@ -34,7 +34,7 @@ plot_feature_summary <- function(feature_mat, time_vec, group_vec,
   group_all <- NULL
 
   for (jj in 1:nfeature) {
-    for (ii in seq_along(group_level)) {
+    for (ii in 1:group_level) {
       ind <- group_vec == group_level[ii]
       if (is.null(bws)) {
         model_np <- npreg(feature_mat[ind, jj] ~ time_vec[ind],
