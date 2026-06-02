@@ -69,11 +69,14 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   })
   for (m in 1:M) datlists[[m]] <- prep[[m]]$datlist
 
-  # Initialize output
-  A <- matrix(0, nrow = n, ncol = r) # shared subject loading matrix
-  B <- lapply(1:M, function(m) matrix(0, p[m], r)) # list of feature loading matrices
-  Zeta <- lapply(1:M, function(m) matrix(0, resolution, r)) # list of time loading fns
-  Lambda <- matrix(0, M, r)  # modality-specific scalings
+  # Initialize output and name dimensions
+  PCname <- paste0('PC', 1:r)
+  A <- matrix(0, n, r, dimnames = list(names(datlists[[1]]), PCname)) # shared subject loadings
+  B <- lapply(seq_len(M), function(m)
+    matrix(0, p[m], r, dimnames = list(rownames(datlists[[m]][[1]])[-1], PCname))) # list of feature loading matrices
+  Zeta <- lapply(seq_len(M), function(m)
+    matrix(0, resolution, r, dimnames = list(NULL, PCname))) # list of time loading fns
+  Lambda <- matrix(0, M, r, dimnames = list(names(datlists), PCname))  # modality-specific scalings
   Rsq      <- matrix(0, M, r)  # per-modality R-squared, one value per (modality, component)
   accumRsq <- matrix(0, M, r)  # per-modality accumulated R-squared
 
