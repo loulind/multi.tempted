@@ -84,7 +84,7 @@ plot_feature_summary <- function(feature_mat, time_vec, group_vec,
 #' @param res Output of \code{\link{multi_tempted_decomp}} or
 #'   \code{\link{multitempted_all}}.
 #' @param pct Fraction of features to display per component, ranked by absolute
-#'   loading. Default 0.05 (top 5\%).
+#'   loading. Default 0.05 (top 5 percent).
 #' @param xlim Length-2 numeric vector giving the x-axis limits.
 #'   Default \code{c(-0.2, 0.2)}.
 #' @return A length-M named list of ggplot2 objects, one per modality. Each
@@ -93,7 +93,7 @@ plot_feature_summary <- function(feature_mat, time_vec, group_vec,
 #' @importFrom ggplot2 ggplot aes geom_col geom_vline scale_fill_manual scale_y_discrete coord_cartesian facet_wrap labs theme_bw theme element_text
 #' @export
 #' @md
-plot_feature_loading <- function(res, pct = 0.05, xlim = c(-0.2, 0.2)) {
+plot_feature_loading <- function(res, pct = 0.05, xlim = c(-0.5, 0.5)) {
   mod_names <- names(res$B_hat)
   PC_names <- colnames(res$B_hat[[1]])
 
@@ -142,7 +142,7 @@ plot_feature_loading <- function(res, pct = 0.05, xlim = c(-0.2, 0.2)) {
     .data <- NULL
     ggplot(all_data, aes(x = .data$value, y = .data$feat_factor,
                          fill = .data$sign)) +
-      geom_col() +
+      geom_col(width = 0.5, color="grey30", linewidth=0.25) +
       geom_vline(xintercept = 0, linewidth = 0.4, colour = "grey30") +
       scale_fill_manual(values = c(negative = "red3", positive = "steelblue"),
                         guide = "none") +
