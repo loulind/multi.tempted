@@ -34,7 +34,7 @@ plot_feature_summary <- function(feature_mat, time_vec, group_vec,
   group_all <- NULL
 
   for (jj in 1:nfeature) {
-    for (ii in 1:group_level) {
+    for (ii in 1:length(group_level)) {
       ind <- group_vec == group_level[ii]
       if (is.null(bws)) {
         model_np <- npreg(feature_mat[ind, jj] ~ time_vec[ind],
@@ -69,6 +69,90 @@ plot_feature_summary <- function(feature_mat, time_vec, group_vec,
                 linetype = 2, alpha = 0.3) +
     ylab(paste0("mean +/- ", round(CI_length, 2), "*se")) +
     facet_wrap(~ .data$feature_all, scales = "free", nrow = nrow)
+}
+
+
+#' @title Plot top feature loadings as horizontal bar charts (multi-modality)
+#' @description For each modality, selects the features whose absolute loading
+#'   exceeds the \code{1 - pct} quantile for each component and displays them as
+#'   horizontal bars: negative loadings in red pointing left, positive loadings
+#'   in blue pointing right. Within each component panel, features are arranged
+#'   from most-negative at the top down to least-negative, then most-positive
+#'   down to least-positive, so the bars form two "wedges" opening from the
+#'   centre. Each modality is returned as a separate ggplot2 object with one
+#'   facet per component.
+#' @param res Output of \code{\link{multi_tempted_decomp}} or
+#'   \code{\link{multitempted_all}}.
+#' @param pct Fraction of features to display per component, ranked by absolute
+#'   loading. Default 0.05 (top 5\%).
+#' @param xlim Length-2 numeric vector giving the x-axis limits.
+#'   Default \code{c(-0.2, 0.2)}.
+#' @return A length-M named list of ggplot2 objects, one per modality. Each
+#'   plot is faceted by component (one panel per PC).
+#' @seealso \code{\link{multitempted_all}}, \code{\link{multi_tempted_decomp}}.
+#' @importFrom ggplot2 ggplot aes geom_col geom_vline scale_fill_manual scale_y_discrete coord_cartesian facet_wrap labs theme_bw theme element_text
+#' @export
+#' @md
+plot_feature_loading <- function(res, pct = 0.05, xlim = c(-0.2, 0.2)) {
+  mod_names <- names(res$B_hat)
+  PC_names <- colnames(res$B_hat[[1]])
+
+  lapply(setNames(mod_names, mod_names), function(mod) {
+    B_m <- res$B_hat[[mod]]  # p_m x r
+
+    # Build a long data frame covering all components for this modality.
+    all_data <- do.call(rbind, lapply(seq_along(PC_names), function(l) {
+      pc <- PC_names[l]
+      loading <- B_m[, pc]
+      thresh <- quantile(abs(loading), 1 - pct)
+      keep <- abs(loading) >= thresh
+
+      vals <- loading[keep]
+      feats <- rownames(B_m)[keep]
+
+      neg_ord <- order(vals[vals < 0]) # most negative first
+      pos_ord <- order(vals[vals >= 0], decreasing = TRUE) # most positive first
+
+      ordered_feats <- c(feats[vals < 0][neg_ord], feats[vals >= 0][pos_ord])
+      ordered_vals <- c(vals[vals < 0][neg_ord],  vals[vals >= 0][pos_ord])
+
+      if (length(ordered_feats) == 0) return(NULL)
+
+      data.frame(
+        # Unique label per (feature, component) so free_y facets don't bleed.
+        feat_label = paste0(ordered_feats, "__", l),
+        feat_name = ordered_feats,
+        value = ordered_vals,
+        sign = ifelse(ordered_vals < 0, "negative", "positive"),
+        component = pc,
+        display_order = seq_along(ordered_feats), # 1 = top of panel
+        stringsAsFactors = FALSE
+      )
+    }))
+
+    if (is.null(all_data) || nrow(all_data) == 0) return(NULL)
+
+    # Factor level order: within each component, ggplot y-axis runs bottom-to-top,
+    # so sort by descending display_order so that display_order=1 (most negative)
+    # ends up as the last (topmost) level in each component's subset.
+    all_data_sorted <- all_data[order(all_data$component, -all_data$display_order), ]
+    all_data$feat_factor <- factor(all_data$feat_label,
+                                   levels = all_data_sorted$feat_label)
+
+    .data <- NULL
+    ggplot(all_data, aes(x = .data$value, y = .data$feat_factor,
+                         fill = .data$sign)) +
+      geom_col() +
+      geom_vline(xintercept = 0, linewidth = 0.4, colour = "grey30") +
+      scale_fill_manual(values = c(negative = "red3", positive = "steelblue"),
+                        guide = "none") +
+      scale_y_discrete(labels = function(x) sub("__\\d+$", "", x)) +
+      coord_cartesian(xlim = xlim) +
+      facet_wrap(~ component, scales = "free_y", ncol = 1) +
+      labs(title = mod, x = "Feature loading", y = NULL) +
+      theme_bw() +
+      theme(plot.title = element_text(hjust = 0.5))
+  })
 }
 
 
