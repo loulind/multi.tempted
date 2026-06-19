@@ -155,6 +155,68 @@ plot_feature_loading <- function(res, pct = 0.05, xlim = c(-0.5, 0.5)) {
   })
 }
 
+#' @title Plot subject loadings in PC space
+#' @description Scatter plot of the shared subject loading matrix (\code{A_hat})
+#'   for two chosen components, optionally coloured by a grouping variable.
+#' @param res Output of \code{\link{multi_tempted_decomp}} or
+#'   \code{\link{multitempted_all}}.
+#' @param group Optional subject x 2 data frame: first column is subject ID,
+#'   second column is the grouping variable (e.g. treatment arm, sex). The
+#'   second column's name is used as the legend title. \code{NULL} (default)
+#'   plots all subjects in one colour.
+#' @param pcs Length-2 integer vector selecting which two components to plot.
+#'   Default \code{c(1, 2)}.
+#' @return A ggplot2 object.
+#' @seealso \code{\link{multitempted_all}}, \code{\link{multi_tempted_decomp}}.
+#' @importFrom ggplot2 ggplot aes geom_point scale_color_brewer labs theme_minimal theme element_text
+#' @export
+#' @md
+plot_subject_loading <- function(res, group = NULL, pcs = c(1, 2)) {
+  A <- if (is.matrix(res) || is.data.frame(res)) as.matrix(res) else res$A_hat
+  r <- ncol(A)
+
+  if (length(pcs) != 2)  stop("'pcs' must be a length-2 integer vector.")
+  if (any(pcs < 1 | pcs > r)) stop(sprintf("'pcs' values must be between 1 and r (%d).", r))
+
+  pc_cols <- colnames(A)[pcs]   # e.g. c("PC1", "PC2")
+
+  plot_df        <- as.data.frame(A[, pcs, drop = FALSE])
+  plot_df$subID  <- rownames(A)
+
+  group_label <- NULL
+  if (!is.null(group)) {
+    group_label    <- colnames(group)[2]
+    colnames(group) <- c("subID", "group")
+    plot_df        <- merge(plot_df, group, by = "subID")
+  }
+
+  .data <- NULL
+
+  if (!is.null(group)) {
+    p <- ggplot(plot_df,
+                aes(x = .data[[pc_cols[1]]], y = .data[[pc_cols[2]]],
+                    color = .data$group)) +
+      scale_color_brewer(palette = "Set1") +
+      labs(color = group_label)
+  } else {
+    p <- ggplot(plot_df,
+                aes(x = .data[[pc_cols[1]]], y = .data[[pc_cols[2]]]))
+  }
+
+  p +
+    geom_point(size = 4, alpha = 0.8) +
+    theme_minimal() +
+    labs(
+      title = paste0("Principal Components ", pcs[1], " and ", pcs[2]),
+      x     = paste0("PC ", pcs[1]),
+      y     = paste0("PC ", pcs[2])
+    ) +
+    theme(
+      plot.title      = element_text(hjust = 0.5, face = "bold"),
+      legend.position = "right"
+    )
+}
+
 
 #' @title Plot smoothed mean and error bands of meta-features versus time
 #' @description Plots the smoothed mean and error bands of meta-features grouped
