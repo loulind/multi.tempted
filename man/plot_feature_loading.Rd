@@ -4,7 +4,7 @@
 \alias{plot_feature_loading}
 \title{Plot top feature loadings as horizontal bar charts (multi-modality)}
 \usage{
-plot_feature_loading(res, pct = 0.05, xlim = c(-0.2, 0.2))
+plot_feature_loading(res, pct = 0.05, xlim = c(-0.5, 0.5))
 }
 \arguments{
 \item{res}{Output of \code{\link{multi_tempted_decomp}} or
