@@ -7,3 +7,4 @@ start.sh
 Dockerfile
 Makefile
 ^LICENSE\.md$
+output
