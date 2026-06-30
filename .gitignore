@@ -1,6 +1,7 @@
 # PERSONAL IGNORED FILES
 start.sh
 man/figures/*
+output/output.html
 
 # DEFAULT IGNORED FILES
 .Rproj.user
