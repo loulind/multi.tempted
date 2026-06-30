@@ -104,7 +104,7 @@
 multitempted_all <- function(featuretables, timepoints, subjectID,
                              threshold = 0.95, pseudo = NULL, transforms = "clr",
                              r = 3, smooth = 1e-8, interval = NULL, resolution = 101,
-                             maxiter = 20, epsilon = 1e-4, centralize = TRUE,
+                             maxiter = 100, epsilon = 1e-4, centralize = TRUE,
                              r_svd = 1, weights = NULL,
                              do_ratio = TRUE, pct_ratio = 0.05, absolute = FALSE,
                              pct_aggregate = 1, contrast = NULL) {
