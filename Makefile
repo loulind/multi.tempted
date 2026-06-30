@@ -2,12 +2,14 @@
 
 # cleans project
 clean:
-	rm -rf <filepath>
+	rm -rf output
 
 # creates folders for project
 dirs:
-	mkdir -p <foldername>
+	mkdir -p output
 
 # Creates outputs
-<target1path> <target2path>: <depend1path> <depend2path>
-	<script>
+output/output.html: data/ipop.rda README.Rmd | dirs
+	Rscript -e 'library(devtools);\
+	load_all();\
+	rmarkdown::render("README.Rmd", output_file="output/output.html", output_format="html_document")'
