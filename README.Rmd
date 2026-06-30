@@ -34,6 +34,7 @@ library(devtools)
 library(testthat)
 library(roxygen2)
 library(knitr)
+library(rmarkdown)
 ```
 
 ---
@@ -109,7 +110,8 @@ library(magick)
 library(pheatmap)
 library(np)
 
-library(multi.tempted)
+library(devtools)
+load_all()
 ```
 
 ---
@@ -134,6 +136,8 @@ Two metadata objects accompany the data:
   `timepoint` (coded 1–5).
 
 ```{r load_data, message=FALSE, warning=FALSE}
+ipop <- multi.tempted::ipop
+
 names(ipop)
 # [1] "meta_subj" "meta_visit" "cytokine" "metabolome" "lipid" "protein"
 ```
@@ -282,7 +286,7 @@ allows group-level trajectory comparisons.
 `metafeature_aggregate` uses the observed data; `metafeature_aggregate_est`
 uses the low-rank de-noised reconstruction.
 
-```{r plot_metafeature, message=FALSE, warning=FALSE, eval=FALSE}
+```{r plot_metafeature, message=FALSE, warning=FALSE}
 # returns a named list of ggplots, one per modality
 traj_plots <- plot_metafeature(output$metafeature_aggregate, group = group_subID)
 
@@ -300,7 +304,7 @@ components will tend to respond together across the exercise intervention.
 Computing pairwise Kendall correlations between feature loading vectors reveals
 modules of co-responding features.
 
-```{r run_multitempted2, eval=FALSE}
+```{r run_multitempted2}
 output2 <- multitempted_all(
   featuretables = featuretables,
   timepoints    = timepoints,
@@ -311,7 +315,7 @@ output2 <- multitempted_all(
 )
 ```
 
-```{r corrplot_within, message=FALSE, warning=FALSE, eval=FALSE}
+```{r corrplot_within, message=FALSE, warning=FALSE}
 # extract feature loadings per modality (transpose to r x p for cor())
 cyto_loadings  <- t(as.matrix(output2$B_hat[["cytokine"]]))
 metab_loadings <- t(as.matrix(output2$B_hat[["metabolome"]]))
@@ -334,7 +338,7 @@ Cross-modality correlation matrices reveal features from different modalities
 that share a loading profile — i.e., are driven by the same latent components.
 (using pheatmap package to create rectangular ordered heatmaps)
 
-```{r corrplot_cross, message=FALSE, warning=FALSE, eval=FALSE}
+```{r corrplot_cross, message=FALSE, warning=FALSE}
 cyto_v_metab <- cor(cyto_loadings, metab_loadings, method = "kendall")
 cyto_v_lipid <- cor(cyto_loadings, lipid_loadings, method = "kendall")
 cyto_v_prot  <- cor(cyto_loadings, prot_loadings,  method = "kendall")
@@ -389,7 +393,7 @@ where nodes are features and edges connect features whose loading profiles
 exceed a correlation threshold. Edge colour indicates the sign of the
 correlation (blue = positive, red = negative).
 
-```{r corr_network, message=FALSE, warning=FALSE, eval=FALSE}
+```{r corr_network, message=FALSE, warning=FALSE}
 # choose a modality correlation matrix and threshold,
 
 choose_corr_here <- metab_corr_mat # change "metab" to one of "cyto", "lipid", or "prot"

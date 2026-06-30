@@ -32,6 +32,7 @@ library(devtools)
 library(testthat)
 library(roxygen2)
 library(knitr)
+library(rmarkdown)
 ```
 
 ------------------------------------------------------------------------
@@ -104,7 +105,8 @@ library(magick)
 library(pheatmap)
 library(np)
 
-library(multi.tempted)
+library(devtools)
+load_all()
 ```
 
 ------------------------------------------------------------------------
@@ -130,6 +132,8 @@ metadata objects accompany the data:
   `timepoint` (coded 1–5).
 
 ``` r
+ipop <- multi.tempted::ipop
+
 names(ipop)
 #> [1] "meta_subj"  "meta_visit" "cytokine"   "metabolome" "lipid"     
 #> [6] "protein"
@@ -323,6 +327,8 @@ traj_plots <- plot_metafeature(output$metafeature_aggregate, group = group_subID
 traj_plots$cytokine + labs(x = "Weeks from baseline")
 ```
 
+<img src="man/figures/README-plot_metafeature-1.png" alt="" width="100%" />
+
 ------------------------------------------------------------------------
 
 ### Modality loading correlations
@@ -341,6 +347,26 @@ output2 <- multitempted_all(
   do_ratio      = FALSE,  # not raw counts
   r             = 10  # computing more components to compute correlations
 )
+#> Estimating component 1 of 10
+#>   Converged: dif = 7.06e-05 after 52 iterations
+#> Estimating component 2 of 10
+#>   Converged: dif = 7.98e-05 after 20 iterations
+#> Estimating component 3 of 10
+#>   Converged: dif = 9.71e-05 after 80 iterations
+#> Estimating component 4 of 10
+#>   Converged: dif = 9.14e-05 after 36 iterations
+#> Estimating component 5 of 10
+#>   Converged: dif = 7.55e-05 after 22 iterations
+#> Estimating component 6 of 10
+#>   Converged: dif = 8.84e-05 after 27 iterations
+#> Estimating component 7 of 10
+#>   Converged: dif = 6.73e-05 after 18 iterations
+#> Estimating component 8 of 10
+#>   Converged: dif = 7.42e-05 after 59 iterations
+#> Estimating component 9 of 10
+#>   Converged: dif = 7.90e-05 after 32 iterations
+#> Estimating component 10 of 10
+#>   Converged: dif = 7.99e-05 after 36 iterations
 ```
 
 ``` r
@@ -357,10 +383,27 @@ lipid_corr_mat <- cor(lipid_loadings, method = "kendall")
 prot_corr_mat  <- cor(prot_loadings,  method = "kendall")
 
 corrplot(cyto_corr_mat,  method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
+```
+
+<img src="man/figures/README-corrplot_within-1.png" alt="" width="100%" />
+
+``` r
 corrplot(metab_corr_mat, method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
+```
+
+<img src="man/figures/README-corrplot_within-2.png" alt="" width="100%" />
+
+``` r
 corrplot(lipid_corr_mat, method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
+```
+
+<img src="man/figures/README-corrplot_within-3.png" alt="" width="100%" />
+
+``` r
 corrplot(prot_corr_mat,  method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
 ```
+
+<img src="man/figures/README-corrplot_within-4.png" alt="" width="100%" />
 
 Cross-modality correlation matrices reveal features from different
 modalities that share a loading profile — i.e., are driven by the same
@@ -381,30 +424,55 @@ pheatmap(cyto_v_metab,
          main = "Cytokine vs Metabolome Correlation Heatmap",
          fontsize_row = 5,
          fontsize_col = 1)
+```
+
+<img src="man/figures/README-corrplot_cross-1.png" alt="" width="100%" />
+
+``` r
 pheatmap(cyto_v_lipid,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
          main = "Cytokine vs Lipid Correlation Heatmap",
          fontsize_row = 5,
          fontsize_col = 4)
+```
+
+<img src="man/figures/README-corrplot_cross-2.png" alt="" width="100%" />
+
+``` r
 pheatmap(cyto_v_prot,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
          main = "Cytokine vs Protein Correlation Heatmap",
          fontsize_row = 5,
          fontsize_col = 4)
+```
+
+<img src="man/figures/README-corrplot_cross-3.png" alt="" width="100%" />
+
+``` r
 pheatmap(metab_v_lipid,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
          main = "Metablome vs Lipid Correlation Heatmap",
          fontsize_row = 1,
          fontsize_col = 4)
+```
+
+<img src="man/figures/README-corrplot_cross-4.png" alt="" width="100%" />
+
+``` r
 pheatmap(metab_v_prot,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
          main = "Metablome vs Protein Correlation Heatmap",
          fontsize_row = 1,
          fontsize_col = 4)
+```
+
+<img src="man/figures/README-corrplot_cross-5.png" alt="" width="100%" />
+
+``` r
 pheatmap(lipid_v_prot,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
@@ -412,6 +480,8 @@ pheatmap(lipid_v_prot,
          fontsize_row = 5,
          fontsize_col = 2)
 ```
+
+<img src="man/figures/README-corrplot_cross-6.png" alt="" width="100%" />
 
 ------------------------------------------------------------------------
 
@@ -447,3 +517,5 @@ plot(
   layout       = layout_with_fr(g, weights = abs(E(g)$weight))
 )
 ```
+
+<img src="man/figures/README-corr_network-1.png" alt="" width="100%" />
