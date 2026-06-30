@@ -1,6 +1,8 @@
 multiTEMPTED Vignette
 ================
 
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
 ## Development setup (Docker)
 
 If working in a Docker container, run the following:
@@ -18,7 +20,7 @@ docker run \
   multi.tempted
 ```
 
-Then in the containerised RStudio session:
+Then in the containerized RStudio session:
 
 1.  USER: rstudio, PS: 123
 2.  Open File \> Open Project and select `multi.tempted.Rproj`
@@ -34,8 +36,6 @@ library(knitr)
 
 ------------------------------------------------------------------------
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
 ## Introduction of multiTEMPTED
 
 This is a vignette for the R package `multi.tempted`, which implements
@@ -43,16 +43,15 @@ This is a vignette for the R package `multi.tempted`, which implements
 (TEMPTED) method to simultaneous multi-modality longitudinal data.
 
 Where the original TEMPTED decomposes a single subject × feature × time
-tensor, multiTEMPTED jointly decomposes M such tensors (one per omic
+tensor, multiTEMPTED jointly decomposes M such tensors (one per
 modality) into:
 
-- A **shared subject loading matrix** A (subjects × r) — the
-  low-dimensional representation that ties all modalities together.
-- **Per-modality feature loading matrices** B$$\[m$$\] (p_m × r) — which
+- A **shared subject loading matrix** A (subjects × r) — Per subject
+  contributions to each component. This ties all modalities together.
+- **Per-modality feature loading matrices** B_m (p_m × r) — which
   features drive each component within each modality.
-- **Per-modality temporal loading functions** Zeta$$\[m$$\] — smooth
-  curves describing how each component evolves over time within each
-  modality.
+- **Per-modality temporal loading functions** Zeta_m — smooth curves
+  describing how each component evolves over time within each modality.
 - **Per-modality scaling factors** Lambda (M × r) — the relative
   magnitude of each component within each modality.
 
@@ -63,7 +62,7 @@ between modalities.
 **Package dependencies:** R (\>= 4.5.0), np (\>= 0.60-17), ggplot2 (\>=
 3.4.0), methods (\>= 4.2.1).
 
-You can **cite this paper** for using TEMPTED (the single-modality
+You can **cite this paper** for now using TEMPTED (the single-modality
 precursor):
 
 Shi P, Martino C, Han R, Janssen S, Buck G, Serrano M, Owzar K, Knight
@@ -96,10 +95,14 @@ pak::pak("loulind/multi.tempted")
 ``` r
 library(tidyverse)
 library(corrplot)
-library(Rtsne)
-library(uwot)
+library(plotly)
 library(igraph)
+library(ggraph)
+library(tidygraph)
 library(patchwork)
+library(magick)
+library(pheatmap)
+
 library(multi.tempted)
 ```
 
@@ -109,49 +112,48 @@ library(multi.tempted)
 
 The example dataset is from a longitudinal exercise omics study (more
 info can be found at <https://med.stanford.edu/snyderlab/ipop.html>).
-Subjects were measured at five visits (mapped below to approximate weeks
-from baseline). Four omic modalities were profiled at each visit:
+Subjects were measured at five time intervals. Four modalities were
+profiled at each visit:
 
 - **cytokine** — plasma cytokine panel
 - **metabolome** — serum metabolomics
 - **lipid** — lipidomics
 - **protein** — proteomics
 
-All four modalities were provided pre-processed on a log₁₀ scale. Two
+All four modalities are provided pre-processed on a log₁₀ scale. Two
 metadata objects accompany the data:
 
-- `df[[1]]` (`meta_subj`): one row per subject with demographic
-  variables including `subjectID` and `Sex`.
-- `df[[2]]` (`meta_visit`): one row per sample with `SubjectID` and
+- `ipop[[1]]` (`meta_subj`): one row per subject with demographic
+  variables.
+- `ipop[[2]]` (`meta_visit`): one row per sample with `SubjectID` and
   `timepoint` (coded 1–5).
 
 ``` r
-df <- readRDS("~/Library/CloudStorage/Box-Box/Lindsley_Lou/proc_data/exercise_log10_multiomic.RDS")
-names(df)
-# [1] "meta_subj"  "meta_visit" "cytokine"   "metabolome" "lipid"      "protein"
+names(ipop)
+# [1] "meta_subj" "meta_visit" "cytokine" "metabolome" "lipid" "protein"
 ```
 
 ``` r
 # Stack the four modality tables into a named list
-featuretables <- lapply(3:6, function(m) as.matrix(df[[m]]))
-names(featuretables) <- names(df)[3:6]
+featuretables <- lapply(3:6, function(m) as.matrix(ipop[[m]]))
+names(featuretables) <- names(ipop)[3:6]
 M <- length(featuretables)
 
 # Map visit codes to approximate minutes from baseline
-timepoint <- as.vector(df[[2]]$timepoint)
+timepoint <- as.vector(ipop[[2]]$timepoint)
 timepoint <- case_when(
-  timepoint == 1 ~  0,
+  timepoint == 1 ~ 0,
   timepoint == 2 ~ 12,
   timepoint == 3 ~ 25,
   timepoint == 4 ~ 40,
   timepoint == 5 ~ 70
 )
 timepoints <- rep(list(timepoint), M)
-subjectID  <- rep(list(as.character(df[[2]]$SubjectID)), M)
+subjectID  <- rep(list(as.character(ipop[[2]]$SubjectID)), M)
 
 # Group variables
-group_sex    <- df[[1]]$Sex                              # vector: one entry per sample
-group_subID  <- df[[1]][, c("subjectID", "Sex")]        # data frame: subjectID + group
+group_sex <- ipop[[1]]$Sex # one column of sex for each subject
+group_subID <- ipop[[1]][, c("subjectID", "Sex")] # two columns: subjectID and their corresponding sex
 ```
 
 ------------------------------------------------------------------------
@@ -193,12 +195,9 @@ output <- multitempted_all(
   featuretables = featuretables,
   timepoints    = timepoints,
   subjectID     = subjectID,
-  transforms    = "none",      # data are already log10-transformed
-  do_ratio      = FALSE,       # not raw counts
-  r             = 10,
-  smooth        = 1e-8,
-  centralize    = TRUE,
-  maxiter       = 100
+  transforms    = "none", # data are already log10-transformed
+  do_ratio      = FALSE,  # not raw counts
+  r             = 3 # number computed components (will compute more later)
 )
 names(output)
 ```
@@ -218,71 +217,9 @@ plot_subject_loading(output$A_hat, group = group_subID)
 
 ------------------------------------------------------------------------
 
-### Non-linear embeddings of the subject space
-
-For higher-rank decompositions (large r), non-linear methods such as
-t-SNE and UMAP can reveal structure in the full r-dimensional subject
-embedding that a two-PC scatter plot may miss.
-
-#### t-SNE
-
-``` r
-set.seed(123)
-tsne_result <- Rtsne(
-  as.matrix(output$A_hat),
-  dims       = 2,
-  perplexity = 6,
-  pca        = FALSE,
-  max_iter   = 1000,
-  verbose    = TRUE
-)
-
-tsne_coords <- as.data.frame(tsne_result$Y)
-colnames(tsne_coords) <- c("tSNE_1", "tSNE_2")
-tsne_coords$Sex <- unique(group_subID)$Sex
-
-ggplot(tsne_coords, aes(x = tSNE_1, y = tSNE_2, color = Sex)) +
-  geom_point(size = 4, alpha = 0.8) +
-  theme_minimal() +
-  scale_color_brewer(palette = "Set1") +
-  labs(title = "t-SNE of Subject Loadings",
-       x = "t-SNE Dimension 1", y = "t-SNE Dimension 2") +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        legend.position = "right")
-```
-
-#### UMAP
-
-``` r
-set.seed(123)
-umap_result <- umap(
-  X            = as.matrix(output$A_hat),
-  n_neighbors  = 6,
-  n_components = 2,
-  metric       = "euclidean",
-  n_threads    = 1,
-  verbose      = TRUE
-)
-
-umap_coords <- as.data.frame(umap_result)
-colnames(umap_coords) <- c("UMAP_1", "UMAP_2")
-umap_coords$Sex <- unique(group_subID)$Sex
-
-ggplot(umap_coords, aes(x = UMAP_1, y = UMAP_2, color = Sex)) +
-  geom_point(size = 4, alpha = 0.8) +
-  theme_minimal() +
-  scale_color_brewer(palette = "Set1") +
-  labs(title = "UMAP of Subject Loadings",
-       x = "UMAP Dimension 1", y = "UMAP Dimension 2") +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        legend.position = "right")
-```
-
-------------------------------------------------------------------------
-
 ### Plot the temporal loading functions
 
-The temporal loading functions Zeta$$\[m$$\] describe how each component
+The temporal loading functions Zeta_m describe how each component
 evolves over time within each modality. A peak in component l’s temporal
 loading for modality m indicates that the contrast captured by component
 l is strongest at that time point in that modality.
@@ -296,9 +233,9 @@ plot_time_loading(output) +
 
 ### Plot the feature loadings
 
-Feature loadings B$$\[m$$\]$$,l$$ rank the features of modality m by
-their contribution to component l. The function below displays the top
-1% of features by absolute loading for each modality and component, with
+Feature loadings B\_(m,l) rank the features of modality m by their
+contribution to component l. The function below displays the top 1% of
+features by absolute loading for each modality and component, with
 negative loadings in red and positive loadings in blue.
 
 ``` r
@@ -318,7 +255,7 @@ relevant features to inspect directly. Below we plot the smoothed mean
 trajectory of two cytokines (GLP-1 and Insulin) grouped by sex.
 
 ``` r
-feat_mat <- df[["cytokine"]][, c("GLP1", "INSULIN")]
+feat_mat <- ipop[["cytokine"]][, c("GLP1", "INSULIN")]
 
 plot_feature_summary(
   feature_mat = feat_mat,
@@ -358,30 +295,39 @@ intervention. Computing pairwise Kendall correlations between feature
 loading vectors reveals modules of co-responding features.
 
 ``` r
+output2 <- multitempted_all(
+  featuretables = featuretables,
+  timepoints    = timepoints,
+  subjectID     = subjectID,
+  transforms    = "none", # data are already log10-transformed
+  do_ratio      = FALSE,  # not raw counts
+  r             = 10  # computing more components to compute correlations
+)
+```
+
+``` r
 # extract feature loadings per modality (transpose to r x p for cor())
-cyto_loadings  <- t(as.matrix(output$B_hat[["cytokine"]]))
-metab_loadings <- t(as.matrix(output$B_hat[["metabolome"]]))
-lipid_loadings <- t(as.matrix(output$B_hat[["lipid"]]))
-prot_loadings  <- t(as.matrix(output$B_hat[["protein"]]))
-subj_loadings  <- t(as.matrix(output$A_hat))
+cyto_loadings  <- t(as.matrix(output2$B_hat[["cytokine"]]))
+metab_loadings <- t(as.matrix(output2$B_hat[["metabolome"]]))
+lipid_loadings <- t(as.matrix(output2$B_hat[["lipid"]]))
+prot_loadings  <- t(as.matrix(output2$B_hat[["protein"]]))
 
 # within-modality feature correlation matrices
 cyto_corr_mat  <- cor(cyto_loadings,  method = "kendall")
 metab_corr_mat <- cor(metab_loadings, method = "kendall")
 lipid_corr_mat <- cor(lipid_loadings, method = "kendall")
 prot_corr_mat  <- cor(prot_loadings,  method = "kendall")
-subj_corr_mat  <- cor(subj_loadings,  method = "kendall")
 
 corrplot(cyto_corr_mat,  method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
 corrplot(metab_corr_mat, method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
 corrplot(lipid_corr_mat, method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
 corrplot(prot_corr_mat,  method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
-corrplot(subj_corr_mat,  method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
 ```
 
 Cross-modality correlation matrices reveal features from different
 modalities that share a loading profile — i.e., are driven by the same
-latent components.
+latent components. (using pheatmap package to create rectangular ordered
+heatmaps)
 
 ``` r
 cyto_v_metab <- cor(cyto_loadings, metab_loadings, method = "kendall")
@@ -391,12 +337,42 @@ metab_v_lipid <- cor(metab_loadings, lipid_loadings, method = "kendall")
 metab_v_prot  <- cor(metab_loadings, prot_loadings,  method = "kendall")
 lipid_v_prot  <- cor(lipid_loadings, prot_loadings,  method = "kendall")
 
-corrplot(cyto_v_metab,  method = "color", tl.cex = 0.2)
-corrplot(cyto_v_lipid,  method = "color", tl.cex = 0.2)
-corrplot(cyto_v_prot,   method = "color", tl.cex = 0.2)
-corrplot(metab_v_lipid, method = "color", tl.cex = 0.2)
-corrplot(metab_v_prot,  method = "color", tl.cex = 0.2)
-corrplot(lipid_v_prot,  method = "color", tl.cex = 0.2)
+pheatmap(cyto_v_metab,
+         clustering_method = "complete",
+         color = colorRampPalette(c("red", "white", "blue"))(50),
+         main = "Cytokine vs Metabolome Correlation Heatmap",
+         fontsize_row = 5,
+         fontsize_col = 1)
+pheatmap(cyto_v_lipid,
+         clustering_method = "complete",
+         color = colorRampPalette(c("red", "white", "blue"))(50),
+         main = "Cytokine vs Lipid Correlation Heatmap",
+         fontsize_row = 5,
+         fontsize_col = 4)
+pheatmap(cyto_v_prot,
+         clustering_method = "complete",
+         color = colorRampPalette(c("red", "white", "blue"))(50),
+         main = "Cytokine vs Protein Correlation Heatmap",
+         fontsize_row = 5,
+         fontsize_col = 4)
+pheatmap(metab_v_lipid,
+         clustering_method = "complete",
+         color = colorRampPalette(c("red", "white", "blue"))(50),
+         main = "Metablome vs Lipid Correlation Heatmap",
+         fontsize_row = 1,
+         fontsize_col = 4)
+pheatmap(metab_v_prot,
+         clustering_method = "complete",
+         color = colorRampPalette(c("red", "white", "blue"))(50),
+         main = "Metablome vs Protein Correlation Heatmap",
+         fontsize_row = 1,
+         fontsize_col = 4)
+pheatmap(lipid_v_prot,
+         clustering_method = "complete",
+         color = colorRampPalette(c("red", "white", "blue"))(50),
+         main = "Lipid vs Protein Correlation Heatmap",
+         fontsize_row = 5,
+         fontsize_col = 2)
 ```
 
 ------------------------------------------------------------------------
@@ -409,9 +385,12 @@ loading profiles exceed a correlation threshold. Edge colour indicates
 the sign of the correlation (blue = positive, red = negative).
 
 ``` r
-# choose a modality correlation matrix and threshold, then run the block below
-threshold       <- 0.60
-adjacency_matrix <- ifelse(abs(cyto_corr_mat) >= threshold, cyto_corr_mat, 0)
+# choose a modality correlation matrix and threshold,
+
+choose_corr_here <- metab_corr_mat # change "metab" to one of "cyto", "lipid", or "prot"
+
+threshold       <- 0.70
+adjacency_matrix <- ifelse(abs(choose_corr_here) >= threshold, choose_corr_here, 0)
 diag(adjacency_matrix) <- 0
 
 g <- graph_from_adjacency_matrix(
