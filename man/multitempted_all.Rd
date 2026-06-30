@@ -15,7 +15,7 @@ multitempted_all(
   smooth = 1e-08,
   interval = NULL,
   resolution = 101,
-  maxiter = 20,
+  maxiter = 100,
   epsilon = 1e-04,
   centralize = TRUE,
   r_svd = 1,
