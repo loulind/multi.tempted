@@ -102,6 +102,7 @@ library(tidygraph)
 library(patchwork)
 library(magick)
 library(pheatmap)
+library(np)
 
 library(multi.tempted)
 ```
@@ -130,6 +131,8 @@ metadata objects accompany the data:
 
 ``` r
 names(ipop)
+#> [1] "meta_subj"  "meta_visit" "cytokine"   "metabolome" "lipid"     
+#> [6] "protein"
 # [1] "meta_subj" "meta_visit" "cytokine" "metabolome" "lipid" "protein"
 ```
 
@@ -199,7 +202,17 @@ output <- multitempted_all(
   do_ratio      = FALSE,  # not raw counts
   r             = 3 # number computed components (will compute more later)
 )
+#> Estimating component 1 of 3
+#>   Converged: dif = 7.06e-05 after 52 iterations
+#> Estimating component 2 of 3
+#>   Converged: dif = 7.98e-05 after 20 iterations
+#> Estimating component 3 of 3
+#>   Converged: dif = 9.71e-05 after 80 iterations
 names(output)
+#>  [1] "datlists"              "mean_svd"              "A_hat"                
+#>  [4] "B_hat"                 "Zeta_hat"              "time_Zeta"            
+#>  [7] "Lambda"                "r_square"              "accum_r_square"       
+#> [10] "metafeature_aggregate" "toppct_aggregate"      "contrast"
 ```
 
 ------------------------------------------------------------------------
@@ -215,6 +228,8 @@ from all modalities.
 plot_subject_loading(output$A_hat, group = group_subID)
 ```
 
+<img src="man/figures/README-plot_subject_loading-1.png" alt="" width="100%" />
+
 ------------------------------------------------------------------------
 
 ### Plot the temporal loading functions
@@ -229,6 +244,8 @@ plot_time_loading(output) +
   labs(x = "Weeks from baseline", title = "Temporal loadings by modality")
 ```
 
+<img src="man/figures/README-plot_time_loading-1.png" alt="" width="100%" />
+
 ------------------------------------------------------------------------
 
 ### Plot the feature loadings
@@ -241,10 +258,29 @@ negative loadings in red and positive loadings in blue.
 ``` r
 plots_feat <- plot_feature_loading(output, pct = 0.01)
 
-# display one modality at a time, e.g.:
+# display one modality at a time:
 plots_feat$cytokine
+```
+
+<img src="man/figures/README-plot_feature_loading-1.png" alt="" width="100%" />
+
+``` r
 plots_feat$metabolome
 ```
+
+<img src="man/figures/README-plot_feature_loading-2.png" alt="" width="100%" />
+
+``` r
+plots_feat$lipid
+```
+
+<img src="man/figures/README-plot_feature_loading-3.png" alt="" width="100%" />
+
+``` r
+plots_feat$protein
+```
+
+<img src="man/figures/README-plot_feature_loading-4.png" alt="" width="100%" />
 
 ------------------------------------------------------------------------
 
@@ -264,6 +300,8 @@ plot_feature_summary(
   bws         = 10
 ) + labs(x = "Weeks from baseline")
 ```
+
+<img src="man/figures/README-plot_feature_summary-1.png" alt="" width="100%" />
 
 ------------------------------------------------------------------------
 

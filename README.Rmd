@@ -97,7 +97,7 @@ pak::pak("loulind/multi.tempted")
 
 ## Load packages for this vignette
 
-```{r load_library, message=FALSE, warning=FALSE, eval=FALSE}
+```{r load_library, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(corrplot)
 library(plotly)
@@ -107,6 +107,7 @@ library(tidygraph)
 library(patchwork)
 library(magick)
 library(pheatmap)
+library(np)
 
 library(multi.tempted)
 ```
@@ -132,12 +133,12 @@ Two metadata objects accompany the data:
 - `ipop[[2]]` (`meta_visit`): one row per sample with `SubjectID` and
   `timepoint` (coded 1–5).
 
-```{r load_data, message=FALSE, warning=FALSE, eval=FALSE}
+```{r load_data, message=FALSE, warning=FALSE}
 names(ipop)
 # [1] "meta_subj" "meta_visit" "cytokine" "metabolome" "lipid" "protein"
 ```
 
-```{r prep_data, message=FALSE, warning=FALSE, eval=FALSE}
+```{r prep_data, message=FALSE, warning=FALSE}
 # Stack the four modality tables into a named list
 featuretables <- lapply(3:6, function(m) as.matrix(ipop[[m]]))
 names(featuretables) <- names(ipop)[3:6]
@@ -191,7 +192,7 @@ loadings, and temporal loadings can be flipped in any consistent combination.
 Interpretation should focus on the relative pattern of values across subjects or
 features, not the absolute sign.
 
-```{r run_multitempted, eval=FALSE}
+```{r run_multitempted}
 output <- multitempted_all(
   featuretables = featuretables,
   timepoints    = timepoints,
@@ -212,7 +213,7 @@ multi-modality generalisation of a PCA score matrix: each row is one
 subject's position in the r-dimensional latent space learned jointly from
 all modalities.
 
-```{r plot_subject_loading, message=FALSE, warning=FALSE, eval=FALSE}
+```{r plot_subject_loading, message=FALSE, warning=FALSE}
 plot_subject_loading(output$A_hat, group = group_subID)
 ```
 
@@ -226,7 +227,7 @@ evolves over time within each modality. A peak in component l's temporal
 loading for modality m indicates that the contrast captured by component l
 is strongest at that time point in that modality.
 
-```{r plot_time_loading, message=FALSE, warning=FALSE, eval=FALSE}
+```{r plot_time_loading, message=FALSE, warning=FALSE}
 plot_time_loading(output) +
   labs(x = "Weeks from baseline", title = "Temporal loadings by modality")
 ```
@@ -240,12 +241,14 @@ contribution to component l. The function below displays the top 1% of
 features by absolute loading for each modality and component, with negative
 loadings in red and positive loadings in blue.
 
-```{r plot_feature_loading, message=FALSE, warning=FALSE, eval=FALSE}
+```{r plot_feature_loading, message=FALSE, warning=FALSE}
 plots_feat <- plot_feature_loading(output, pct = 0.01)
 
-# display one modality at a time, e.g.:
+# display one modality at a time:
 plots_feat$cytokine
 plots_feat$metabolome
+plots_feat$lipid
+plots_feat$protein
 ```
 
 ---
@@ -256,7 +259,7 @@ The feature loading rankings can be used to identify biologically relevant
 features to inspect directly. Below we plot the smoothed mean trajectory of
 two cytokines (GLP-1 and Insulin) grouped by sex.
 
-```{r plot_feature_summary, message=FALSE, warning=FALSE, eval=FALSE}
+```{r plot_feature_summary, message=FALSE, warning=FALSE}
 feat_mat <- ipop[["cytokine"]][, c("GLP1", "INSULIN")]
 
 plot_feature_summary(
