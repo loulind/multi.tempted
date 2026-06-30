@@ -69,13 +69,13 @@ precursor):
 Shi P, Martino C, Han R, Janssen S, Buck G, Serrano M, Owzar K, Knight
 R, Shenhav L, Zhang AR. [Time-Informed Dimensionality Reduction for
 Longitudinal Microbiome Studies.
-bioRxiv.](https://www.biorxiv.org/content/10.1101/2023.07.26.550749v1)
+bioRxiv.](https://doi.org/10.1101/2023.07.26.550749)
 
 The statistical theory behind the functional tensor decomposition:
 
 Han R, Shi P, Zhang AR. [Guaranteed Functional Tensor Singular Value
 Decomposition. Journal of the American Statistical Association (2023):
-1-13.](https://www.tandfonline.com/doi/full/10.1080/01621459.2022.2153689)
+1-13.](https://doi.org/10.1080/01621459.2022.2153689)
 
 ------------------------------------------------------------------------
 
