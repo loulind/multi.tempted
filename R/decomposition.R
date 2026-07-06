@@ -2,8 +2,8 @@
 #' @description
 #' CP-type decomposition of M subject-by-feature-by-time tensors.
 #' Each tensor ("modality") shares a subject loading with all others.
-#' Run after formatting data with `format_multitempted()` &
-#' after `svd_centralize` if centralize option is selected.
+#' Run after formatting data with `format_tempted()` &
+#' after `svd_centralize()` if the centralize option is selected.
 #' @param datlists A length-M named list of length-n lists of matrices.
 #'   Each matrix is one subject: row 1 is sampling times, rows 2..p+1 are features.
 #' @param r Number of components (rank). Default 3.
@@ -14,11 +14,14 @@
 #' @param resolution Grid size for evaluating temporal loading functions. Default 101.
 #' @param maxiter Maximum iterations per component. Default 20.
 #' @param epsilon Convergence threshold on squared loading change. Default 1e-4.
-#' @param weights Length-M numeric vector of non-negative modality weights (w_1,...,w_M)
+#' @param weights Length-M numeric vector of positive modality weights (w_1,...,w_M)
 #'   that scale the data-fit term for each modality in the objective function.
 #'   Larger weight = greater emphasis on that modality when estimating the shared
-#'   subject loading and each modality's temporal loading.
-#'   Default: equal weights (all 1).
+#'   subject loading and each modality's temporal loading. To equalise the
+#'   influence of modalities that differ in scale, set `w_m` inversely
+#'   proportional to that modality's total variance (e.g.
+#'   `w_m = 1 / sum(X_m^2)`). To exclude a modality entirely, omit it from
+#'   `datlists` rather than giving it weight 0. Default: equal weights (all 1).
 #' @return A list with:
 #'   \describe{
 #'     \item{A_hat}{Subject loading, n x r matrix (shared across modalities).}
@@ -44,6 +47,9 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   if (length(unique(lengths(datlists))) != 1) {
     stop("All modalities must have the same number of subjects.")
   }
+  if (length(r) != 1 || r < 1 || r != round(r)) {
+    stop("'r' must be a single positive integer.")
+  }
 
   # Initialize data dimensions
   M <- length(datlists)  # number modalities
@@ -60,7 +66,10 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
   # Default to equal weights
   if (is.null(weights)) weights <- rep(1, M)
   if (length(weights) != M) stop("'weights' must have length equal to the number of modalities (M).")
-  if (any(weights < 0))    stop("'weights' must be non-negative.")
+  if (any(!is.finite(weights)) || any(weights <= 0)) {
+    stop("'weights' must be positive and finite. To exclude a modality, omit it ",
+         "from 'datlists'; to down-weight it, use a small positive value.")
+  }
 
   # Initialize time intervals (rescale to [0,1], bin based on resolution, build kernel matrices)
   prep <- lapply(1:M, function(m) {
@@ -68,6 +77,20 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
     init_time_intv(datlists[[m]], p[m], n, interval_m, resolution)
   })
   for (m in 1:M) datlists[[m]] <- prep[[m]]$datlist
+
+  # Guard: each subject's shared loading a_i is a ratio whose denominator sums
+  # over that subject's in-interval samples across modalities. A subject with no
+  # in-interval sample in any modality would give 0/0, so reject it up front.
+  subj_names <- names(datlists[[1]])
+  for (i in seq_len(n)) {
+    any_in_range <- any(vapply(seq_len(M),
+                               function(m) any(prep[[m]]$tipos[[i]]), logical(1)))
+    if (!any_in_range) {
+      stop(sprintf(
+        "Subject '%s' has no samples inside the decomposition interval of any modality.",
+        subj_names[i]))
+    }
+  }
 
   # Initialize output and name dimensions
   PCname <- paste0('PC', 1:r)
@@ -102,7 +125,7 @@ multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
     # STEP 2: Update a, b, and zeta until max iterations reached or it converges
     iter <- 0
     dif  <- 1
-    while (iter <= maxiter && dif > epsilon) {
+    while (iter < maxiter && dif > epsilon) {
       # (a) Temporal loading: update zeta for each modality independently
       zeta_hats <- lapply(1:M, function(m)
         update_zeta(datlists[[m]], p[m], b_hats[[m]], a_hat, prep[[m]]$ind_vec,
