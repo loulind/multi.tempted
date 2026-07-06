@@ -411,7 +411,7 @@ pheatmap(lipid_v_prot,
 ### Correlation network
 
 Thresholding a correlation matrix gives a co-response network: nodes are
-features, edges join strongly correlated pairs (blue = positive, red =
+features, edges join strongly correlated pairs (blue = positive; red =
 negative).
 
 ``` r

@@ -311,7 +311,7 @@ pheatmap(lipid_v_prot,
 ### Correlation network
 
 Thresholding a correlation matrix gives a co-response network: nodes are
-features, edges join strongly correlated pairs (blue = positive, red = negative).
+features, edges join strongly correlated pairs (blue = positive; red = negative).
 
 ```{r corr_network, message=FALSE, warning=FALSE}
 # choose a modality correlation matrix and threshold,
@@ -354,8 +354,7 @@ devtools::document()   # regenerate man pages from roxygen comments
 devtools::build_readme()  # re-render this README.md from README.Rmd
 ```
 
-A Docker image (rocker/RStudio, amd64) is provided for a reproducible
-environment:
+A Docker image (rocker/RStudio, amd64) is provided for a reproducible environment:
 
 ```{zsh, eval=FALSE}
 docker build . --platform=linux/amd64 -t multi.tempted
