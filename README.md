@@ -3,40 +3,6 @@ multiTEMPTED Vignette
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-## Development setup (Docker)
-
-If working in a Docker container, run the following:
-
-``` zsh
-# emulates amd64 if working on non-linux and builds container
-docker build . --platform=linux/amd64 -t multi.tempted
-
-# ports to 8787 for rocker container
-docker run \
-  --platform=linux/amd64 \
-  -v $(pwd):/home/rstudio/work \
-  -e PASSWORD=123 \
-  -p 8787:8787 \
-  multi.tempted
-```
-
-Then in the containerized RStudio session:
-
-1.  USER: rstudio, PS: 123
-2.  Open File \> Open Project and select `multi.tempted.Rproj`
-3.  Once opened, run:
-
-``` r
-setwd('~/work')
-library(devtools)
-library(testthat)
-library(roxygen2)
-library(knitr)
-library(rmarkdown)
-```
-
-------------------------------------------------------------------------
-
 ## Introduction of multiTEMPTED
 
 `multi.tempted` extends TEMPTED (TEMPoral TEnsor Decomposition) to
@@ -60,19 +26,28 @@ theory ([Han et al.](https://doi.org/10.1080/01621459.2022.2153689)).
 
 ## Installation
 
-You can install the development version of `multi.tempted` from
-[GitHub](https://github.com/loulind/multi.tempted) with:
+Install the development version from
+[GitHub](https://github.com/loulind/multi.tempted) with either helper:
 
 ``` r
-# install.packages("pak")
-pak::pak("loulind/multi.tempted")
+# with remotes
+remotes::install_github("loulind/multi.tempted")
+
+# or with pak
+pak::pkg_install("loulind/multi.tempted")
 ```
 
 ------------------------------------------------------------------------
 
-## Load packages for this vignette
+## Load packages
+
+`multi.tempted` is the package itself; the rest are used only for the
+plots in this walkthrough.
 
 ``` r
+library(multi.tempted)
+
+# extras used only for visualisation below
 library(tidyverse)
 library(corrplot)
 library(plotly)
@@ -83,9 +58,6 @@ library(patchwork)
 library(magick)
 library(pheatmap)
 library(np)
-
-library(devtools)
-load_all()
 ```
 
 ------------------------------------------------------------------------
@@ -213,7 +185,8 @@ a component. Below: top 1% by absolute loading, negative in red,
 positive in blue.
 
 ``` r
-plots_feat <- plot_feature_loading(output, pct = 0.01)
+plots_feat <- plot_feature_loading(output, pct = 0.05)
+meta_feat <- plot_feature_loading(output, pct = 0.01) # top 1% b/c metabolomics data is much higher dimensional
 
 # display one modality at a time:
 plots_feat$cytokine
@@ -222,7 +195,7 @@ plots_feat$cytokine
 <img src="man/figures/README-plot_feature_loading-1.png" alt="" width="100%" />
 
 ``` r
-plots_feat$metabolome
+meta_feat$metabolome
 ```
 
 <img src="man/figures/README-plot_feature_loading-2.png" alt="" width="100%" />
@@ -326,30 +299,30 @@ lipid_loadings <- t(as.matrix(output2$B_hat[["lipid"]]))
 prot_loadings  <- t(as.matrix(output2$B_hat[["protein"]]))
 
 # within-modality feature correlation matrices
-cyto_corr_mat  <- cor(cyto_loadings,  method = "kendall")
-metab_corr_mat <- cor(metab_loadings, method = "kendall")
-lipid_corr_mat <- cor(lipid_loadings, method = "kendall")
-prot_corr_mat  <- cor(prot_loadings,  method = "kendall")
+cyto_corr_mat  <- cor(cyto_loadings,  method = "spearman")
+metab_corr_mat <- cor(metab_loadings, method = "spearman")
+lipid_corr_mat <- cor(lipid_loadings, method = "spearman")
+prot_corr_mat  <- cor(prot_loadings,  method = "spearman")
 
-corrplot(cyto_corr_mat,  method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
+corrplot(cyto_corr_mat,  method = "color", type = "lower", tl.cex = 0.001, order = "hclust", title = "Cytokine Spearman Corr Heatmap")
 ```
 
 <img src="man/figures/README-corrplot_within-1.png" alt="" width="100%" />
 
 ``` r
-corrplot(metab_corr_mat, method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
+corrplot(metab_corr_mat, method = "color", type = "lower", tl.cex = 0.001, order = "hclust",  title = "Metabolite Spearman Corr Heatmap")
 ```
 
 <img src="man/figures/README-corrplot_within-2.png" alt="" width="100%" />
 
 ``` r
-corrplot(lipid_corr_mat, method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
+corrplot(lipid_corr_mat, method = "color", type = "lower", tl.cex = 0.001, order = "hclust",  title = "Lipid Spearman Corr Heatmap")
 ```
 
 <img src="man/figures/README-corrplot_within-3.png" alt="" width="100%" />
 
 ``` r
-corrplot(prot_corr_mat,  method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
+corrplot(prot_corr_mat,  method = "color", type = "lower", tl.cex = 0.001, order = "hclust",  title = "Protein Spearman Corr Heatmap")
 ```
 
 <img src="man/figures/README-corrplot_within-4.png" alt="" width="100%" />
@@ -359,19 +332,19 @@ driven by the same components (rectangular ordered heatmaps via
 `pheatmap`).
 
 ``` r
-cyto_v_metab <- cor(cyto_loadings, metab_loadings, method = "kendall")
-cyto_v_lipid <- cor(cyto_loadings, lipid_loadings, method = "kendall")
-cyto_v_prot  <- cor(cyto_loadings, prot_loadings,  method = "kendall")
-metab_v_lipid <- cor(metab_loadings, lipid_loadings, method = "kendall")
-metab_v_prot  <- cor(metab_loadings, prot_loadings,  method = "kendall")
-lipid_v_prot  <- cor(lipid_loadings, prot_loadings,  method = "kendall")
+cyto_v_metab <- cor(cyto_loadings, metab_loadings, method = "spearman")
+cyto_v_lipid <- cor(cyto_loadings, lipid_loadings, method = "spearman")
+cyto_v_prot  <- cor(cyto_loadings, prot_loadings,  method = "spearman")
+metab_v_lipid <- cor(metab_loadings, lipid_loadings, method = "spearman")
+metab_v_prot  <- cor(metab_loadings, prot_loadings,  method = "spearman")
+lipid_v_prot  <- cor(lipid_loadings, prot_loadings,  method = "spearman")
 
 pheatmap(cyto_v_metab,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Cytokine vs Metabolome Correlation Heatmap",
-         fontsize_row = 5,
-         fontsize_col = 1)
+         main = "Cytokine (row) vs Metabolome (col) Correlation Heatmap",
+         fontsize_row = 0.001,
+         fontsize_col = 0.001)
 ```
 
 <img src="man/figures/README-corrplot_cross-1.png" alt="" width="100%" />
@@ -380,9 +353,9 @@ pheatmap(cyto_v_metab,
 pheatmap(cyto_v_lipid,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Cytokine vs Lipid Correlation Heatmap",
-         fontsize_row = 5,
-         fontsize_col = 4)
+         main = "Cytokine (row) vs Lipid (col) Correlation Heatmap",
+         fontsize_row = 0.001,
+         fontsize_col = 0.001)
 ```
 
 <img src="man/figures/README-corrplot_cross-2.png" alt="" width="100%" />
@@ -391,9 +364,9 @@ pheatmap(cyto_v_lipid,
 pheatmap(cyto_v_prot,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Cytokine vs Protein Correlation Heatmap",
-         fontsize_row = 5,
-         fontsize_col = 4)
+         main = "Cytokine (row) vs Protein (col) Correlation Heatmap",
+         fontsize_row = 0.001,
+         fontsize_col = 0.001)
 ```
 
 <img src="man/figures/README-corrplot_cross-3.png" alt="" width="100%" />
@@ -402,9 +375,9 @@ pheatmap(cyto_v_prot,
 pheatmap(metab_v_lipid,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Metabolome vs Lipid Correlation Heatmap",
-         fontsize_row = 1,
-         fontsize_col = 4)
+         main = "Metabolome (row) vs Lipid (col) Correlation Heatmap",
+         fontsize_row = 0.001,
+         fontsize_col = 0.001)
 ```
 
 <img src="man/figures/README-corrplot_cross-4.png" alt="" width="100%" />
@@ -413,9 +386,9 @@ pheatmap(metab_v_lipid,
 pheatmap(metab_v_prot,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Metabolome vs Protein Correlation Heatmap",
-         fontsize_row = 1,
-         fontsize_col = 4)
+         main = "Metabolome (row) vs Protein (col) Correlation Heatmap",
+         fontsize_row = 0.001,
+         fontsize_col = 0.001)
 ```
 
 <img src="man/figures/README-corrplot_cross-5.png" alt="" width="100%" />
@@ -424,9 +397,9 @@ pheatmap(metab_v_prot,
 pheatmap(lipid_v_prot,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Lipid vs Protein Correlation Heatmap",
-         fontsize_row = 5,
-         fontsize_col = 2)
+         main = "Lipid (row) vs Protein (col) Correlation Heatmap",
+         fontsize_row = 0.001,
+         fontsize_col = 0.001)
 ```
 
 <img src="man/figures/README-corrplot_cross-6.png" alt="" width="100%" />
@@ -444,7 +417,7 @@ negative).
 
 choose_corr_here <- metab_corr_mat # change "metab" to one of "cyto", "lipid", or "prot"
 
-threshold       <- 0.70
+threshold       <- 0.85
 adjacency_matrix <- ifelse(abs(choose_corr_here) >= threshold, choose_corr_here, 0)
 diag(adjacency_matrix) <- 0
 
@@ -466,3 +439,29 @@ plot(
 ```
 
 <img src="man/figures/README-corr_network-1.png" alt="" width="100%" />
+
+------------------------------------------------------------------------
+
+## Development
+
+*Contributors only — not needed to use the package.* Work against the
+source tree with `devtools`:
+
+``` r
+# from the package root
+devtools::load_all()   # load the in-development source
+devtools::test()       # run the test suite
+devtools::document()   # regenerate man pages from roxygen comments
+devtools::build_readme()  # re-render this README.md from README.Rmd
+```
+
+A Docker image (rocker/RStudio, amd64) is provided for a reproducible
+environment:
+
+``` zsh
+docker build . --platform=linux/amd64 -t multi.tempted
+docker run --platform=linux/amd64 \
+  -v $(pwd):/home/rstudio/work -e PASSWORD=123 -p 8787:8787 multi.tempted
+# open http://localhost:8787 (user: rstudio, password: 123),
+# then open multi.tempted.Rproj
+```
