@@ -35,8 +35,8 @@ If unnamed, modalities are labelled \code{"modality1"}, \code{"modality2"}, etc.
 \item{timepoints}{a length-M list of numeric vectors,
 matched row-wise to each \code{featuretables[[m]]}.}
 
-\item{subjectID}{A length M list of lists of subject ID's of each sample,
-matched with the rows of \code{featuretable[[m]]}}
+\item{subjectID}{A length-M list of vectors of subject IDs, one vector per
+modality, each matched row-wise to \code{featuretables[[m]]}.}
 
 \item{threshold}{Scalar (applied to all modalities) or length-M numeric vector.
 Features with zero-value percentage above this threshold are excluded.

@@ -14,7 +14,7 @@ plot_feature_loading(res, pct = 0.05, xlim = c(-0.5, 0.5))
 loading. Default 0.05 (top 5 percent).}
 
 \item{xlim}{Length-2 numeric vector giving the x-axis limits.
-Default \code{c(-0.2, 0.2)}.}
+Default \code{c(-0.5, 0.5)}.}
 }
 \value{
 A length-M named list of ggplot2 objects, one per modality. Each

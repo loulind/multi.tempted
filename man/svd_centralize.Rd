@@ -30,9 +30,3 @@ whose constant-in-time (mean) component has been removed, so that the
 subsequent decomposition captures time-varying structure rather than
 dominant constant effects.
 }
-\references{
-Shi P, Martino C, Han R, Janssen S, Buck G, Serrano M, Owzar K, Knight R,
-Shenhav L, Zhang AR. (2023) \emph{Time-Informed Dimensionality Reduction for
-Longitudinal Microbiome Studies}. bioRxiv. doi: 10.1101/550749.
-\url{https://doi.org/10.1101/550749}.
-}

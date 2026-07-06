@@ -33,11 +33,14 @@ range to decompose for each modality. Default: full observed range per modality.
 
 \item{epsilon}{Convergence threshold on squared loading change. Default 1e-4.}
 
-\item{weights}{Length-M numeric vector of non-negative modality weights (w_1,...,w_M)
+\item{weights}{Length-M numeric vector of positive modality weights (w_1,...,w_M)
 that scale the data-fit term for each modality in the objective function.
 Larger weight = greater emphasis on that modality when estimating the shared
-subject loading and each modality's temporal loading.
-Default: equal weights (all 1).}
+subject loading and each modality's temporal loading. To equalise the
+influence of modalities that differ in scale, set \code{w_m} inversely
+proportional to that modality's total variance (e.g.
+\code{w_m = 1 / sum(X_m^2)}). To exclude a modality entirely, omit it from
+\code{datlists} rather than giving it weight 0. Default: equal weights (all 1).}
 }
 \value{
 A list with:
@@ -58,6 +61,6 @@ of the first l components' joint reconstruction against the original
 \description{
 CP-type decomposition of M subject-by-feature-by-time tensors.
 Each tensor ("modality") shares a subject loading with all others.
-Run after formatting data with \code{format_multitempted()} &
-after \code{svd_centralize} if centralize option is selected.
+Run after formatting data with \code{format_tempted()} &
+after \code{svd_centralize()} if the centralize option is selected.
 }

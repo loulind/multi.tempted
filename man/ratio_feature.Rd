@@ -41,6 +41,6 @@ features used as the denominator (negative-loading features).}
 \description{
 For each modality, selects the top- and bottom-ranked features
 by component loading and returns the log ratio of their summed raw
-abundances. Designed for longitudinal microbiome count data; may not be
+abundances. Designed for longitudinal count data; may not be
 meaningful for other data types.
 }
