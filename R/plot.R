@@ -149,7 +149,7 @@ plot_feature_loading <- function(res, pct = 0.05, xlim = c(-0.5, 0.5)) {
       scale_y_discrete(labels = function(x) sub("__\\d+$", "", x)) +
       coord_cartesian(xlim = xlim) +
       facet_wrap(~ component, scales = "free_y", ncol = 1) +
-      labs(title = paste0(mod, " Top ", 100*pct, "% Feature Loadings"),
+      labs(title = paste0("'", mod, "'", " Top ", 100*pct, "% Feature Loadings"),
            x = "Feature loading", y = NULL) +
       theme_bw() +
       theme(plot.title = element_text(hjust = 0.5))
