@@ -51,22 +51,21 @@ format_tempted <- function(featuretable, timepoint, subjectID,
       "otherwise pre-processed, use transform = \"none\"."
     ))
   }
-  # get pseudo count
-  if (is.null(pseudo) & (transform %in% c("clr", "logcomp", "logit"))){
+  # get pseudo count for the log-type transforms that need one
+  log_pseudo_transforms <- c("clr", "logcomp", "logit", "lfb")
+  if (is.null(pseudo) & (transform %in% log_pseudo_transforms)){
     pseudo <- apply(featuretable, 1, function(x){
       min(x[x!=0])/2
     })
   }
   # keep taxon that has non-zeros in >1-threshold samples
   featuretable <- featuretable[,colMeans(featuretable==0)<=threshold]
-  if(transform=='logcomp' | transform=="lfb"){
+  if(transform=='logcomp'){
     featuretable <- featuretable+pseudo
     featuretable <- t(log(featuretable/rowSums(featuretable)))
   }else if(transform=='comp'){
-    featuretable <- featuretable
     featuretable <- t(featuretable/rowSums(featuretable))
   }else if(transform=='ast'){
-    featuretable <- featuretable
     featuretable <- t(asin(sqrt(featuretable/rowSums(featuretable))))
   }else if(transform=='clr'){
     featuretable <- featuretable+pseudo
@@ -82,9 +81,8 @@ format_tempted <- function(featuretable, timepoint, subjectID,
   }else if(transform=='none'){
     featuretable <- t(featuretable)
   }else{
-    message('Input transformation method is wrong! logcomp is applied instead')
-    featuretable <- featuretable+pseudo
-    featuretable <- t(log(featuretable/rowSums(featuretable)))
+    stop("Unknown transform '", transform, "'. Valid options are: ",
+         "'logcomp', 'comp', 'ast', 'clr', 'lfb', 'logit', 'none'.")
   }
   featuretable <- rbind(timepoint, featuretable)
   rownames(featuretable)[1] <- 'timepoint'
