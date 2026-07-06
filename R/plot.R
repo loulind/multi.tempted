@@ -86,7 +86,7 @@ plot_feature_summary <- function(feature_mat, time_vec, group_vec,
 #' @param pct Fraction of features to display per component, ranked by absolute
 #'   loading. Default 0.05 (top 5 percent).
 #' @param xlim Length-2 numeric vector giving the x-axis limits.
-#'   Default \code{c(-0.2, 0.2)}.
+#'   Default \code{c(-0.5, 0.5)}.
 #' @return A length-M named list of ggplot2 objects, one per modality. Each
 #'   plot is faceted by component (one panel per PC).
 #' @seealso \code{\link{multitempted_all}}, \code{\link{multi_tempted_decomp}}.
