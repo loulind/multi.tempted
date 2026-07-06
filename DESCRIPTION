@@ -15,13 +15,17 @@ Authors@R: c(
       role = c("aut")
     )
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
+Description: Implements multiTEMPTED, a generalization of the temporal tensor
+    decomposition TEMPTED to multiple simultaneous data modalities. Given several
+    subject-by-feature-by-time tensors that share a common set of subjects, the
+    method estimates a shared subject loading together with per-modality feature
+    loadings, smooth per-modality temporal loading functions (via reproducing
+    kernel Hilbert space regression), and per-modality scaling factors. Modalities
+    may differ in their features, sampling times, and number of time points.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Imports: np (>= 0.60-17), ggplot2 (>= 3.4.0), methods (>= 4.2.1)
-LinkingTo: 
 Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
