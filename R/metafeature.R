@@ -159,7 +159,7 @@ aggregate_feature <- function(res_decomp, mean_svd = NULL, datlists,
 #' @title Log ratio of top vs bottom features (multi-modality)
 #' @description For each modality, selects the top- and bottom-ranked features
 #'   by component loading and returns the log ratio of their summed raw
-#'   abundances. Designed for longitudinal microbiome count data; may not be
+#'   abundances. Designed for longitudinal count data; may not be
 #'   meaningful for other data types.
 #' @param res_decomp Output of \code{\link{multi_tempted_decomp}} or
 #'   \code{\link{multitempted_all}}.

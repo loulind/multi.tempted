@@ -17,11 +17,6 @@
 #'   \item{B_tilde}{Length-M list of p_m x r feature loading matrices for the mean structure.}
 #'   \item{lambda_tilde}{Length-M list of length-r singular value vectors for the mean structure.}
 #' }
-#' @references
-#' Shi P, Martino C, Han R, Janssen S, Buck G, Serrano M, Owzar K, Knight R,
-#' Shenhav L, Zhang AR. (2023) \emph{Time-Informed Dimensionality Reduction for
-#' Longitudinal Microbiome Studies}. bioRxiv. doi: 10.1101/550749.
-#' \url{https://doi.org/10.1101/550749}.
 #' @export
 #' @md
 svd_centralize <- function(datlists, r = 1) {
@@ -43,6 +38,15 @@ svd_centralize <- function(datlists, r = 1) {
     }
     pm_vals[[1]]
   })
+
+  # The rank-r mean structure is an SVD of an n x p_m matrix, so r cannot exceed
+  # the number of available singular values, min(n, p_m), for any modality.
+  max_rank <- min(n, min(p))
+  if (r < 1 || r != round(r)) stop("'r' must be a positive integer.")
+  if (r > max_rank) {
+    stop(sprintf("'r' (%d) exceeds min(n, p_m) = %d; no rank-%d mean structure exists.",
+                 r, max_rank, r))
+  }
 
   # initialize output
   datlists_new <- datlists
