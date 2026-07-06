@@ -30,19 +30,15 @@ Install the development version from
 [GitHub](https://github.com/loulind/multi.tempted) with either helper:
 
 ``` r
-# with remotes
-remotes::install_github("loulind/multi.tempted")
-
-# or with pak
+# with pak (preferred)
 pak::pkg_install("loulind/multi.tempted")
+
+# or with remotes (depreciated) remotes::install_github("loulind/multi.tempted")
 ```
 
 ------------------------------------------------------------------------
 
 ## Load packages
-
-`multi.tempted` is the package itself; the rest are used only for the
-plots in this walkthrough.
 
 ``` r
 library(multi.tempted)
@@ -66,9 +62,11 @@ library(np)
 
 The [iPOP exercise study](https://med.stanford.edu/snyderlab/ipop.html):
 four omic modalities (**cytokine**, **metabolome**, **lipid**,
-**protein**), each on a log₁₀ scale, measured at five visits. `ipop`
-also carries subject metadata (`meta_subj`) and per-sample `SubjectID` /
-`timepoint` (`meta_visit`).
+**protein**), each provided preprocessed on a log₁₀ scale, measured at
+baseline (preworkout) and four time points post-workout. `ipop` also
+carries subject metadata (`meta_subj`) and per-sample `SubjectID` /
+`timepoint` (`meta_visit`). PCA was also performed on the lipid data to
+reduce its dimensionality for the purpose of this vignette.
 
 ``` r
 ipop <- multi.tempted::ipop
@@ -186,7 +184,7 @@ positive in blue.
 
 ``` r
 plots_feat <- plot_feature_loading(output, pct = 0.05)
-meta_feat <- plot_feature_loading(output, pct = 0.01) # top 1% b/c metabolomics data is much higher dimensional
+meta_feat <- plot_feature_loading(output, pct = 0.01) # top 1% so not as busy
 
 # display one modality at a time:
 plots_feat$cytokine
@@ -304,25 +302,29 @@ metab_corr_mat <- cor(metab_loadings, method = "spearman")
 lipid_corr_mat <- cor(lipid_loadings, method = "spearman")
 prot_corr_mat  <- cor(prot_loadings,  method = "spearman")
 
-corrplot(cyto_corr_mat,  method = "color", type = "lower", tl.cex = 0.001, order = "hclust", title = "Cytokine Spearman Corr Heatmap")
+corrplot(cyto_corr_mat,  method = "color", tl.cex = 0.001, order = "hclust", 
+         mar = c(0, 0, 2, 0), title = "Cytokine Spearman Corr Heatmap")
 ```
 
 <img src="man/figures/README-corrplot_within-1.png" alt="" width="100%" />
 
 ``` r
-corrplot(metab_corr_mat, method = "color", type = "lower", tl.cex = 0.001, order = "hclust",  title = "Metabolite Spearman Corr Heatmap")
+corrplot(metab_corr_mat, method = "color", tl.cex = 0.001, order = "hclust", 
+         mar = c(0, 0, 2, 0), title = "Metabolite Spearman Corr Heatmap")
 ```
 
 <img src="man/figures/README-corrplot_within-2.png" alt="" width="100%" />
 
 ``` r
-corrplot(lipid_corr_mat, method = "color", type = "lower", tl.cex = 0.001, order = "hclust",  title = "Lipid Spearman Corr Heatmap")
+corrplot(lipid_corr_mat, method = "color", tl.cex = 0.001, order = "hclust", 
+         mar = c(0, 0, 2, 0), title = "Lipid Spearman Corr Heatmap")
 ```
 
 <img src="man/figures/README-corrplot_within-3.png" alt="" width="100%" />
 
 ``` r
-corrplot(prot_corr_mat,  method = "color", type = "lower", tl.cex = 0.001, order = "hclust",  title = "Protein Spearman Corr Heatmap")
+corrplot(prot_corr_mat,  method = "color", tl.cex = 0.001, order = "hclust", 
+         mar = c(0, 0, 2, 0), title = "Protein Spearman Corr Heatmap")
 ```
 
 <img src="man/figures/README-corrplot_within-4.png" alt="" width="100%" />
