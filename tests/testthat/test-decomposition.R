@@ -550,13 +550,43 @@ test_that("multi_tempted_decomp errors when modalities have different subject co
 test_that("multi_tempted_decomp errors on negative weights", {
   dl <- make_datlists(M = 2, n = 3)
   expect_error(multi_tempted_decomp(dl, r = 1, weights = c(1, -0.5)),
-               "non-negative")
+               "positive")
+})
+
+test_that("multi_tempted_decomp errors on zero weights", {
+  # A weight of exactly 0 would make the ignored modality's loadings 0/0 (NaN),
+  # so it is rejected up front rather than silently producing NaNs.
+  dl <- make_datlists(M = 2, n = 3)
+  expect_error(multi_tempted_decomp(dl, r = 1, weights = c(1, 0)),
+               "positive")
 })
 
 test_that("multi_tempted_decomp errors when weights length != M", {
   dl <- make_datlists(M = 2, n = 3)
   expect_error(multi_tempted_decomp(dl, r = 1, weights = c(1, 1, 1)),
                "length")
+})
+
+test_that("multi_tempted_decomp errors when a subject falls outside every interval", {
+  # Subjects 1-2 sampled early, subject 3 sampled late. An interval covering only
+  # the early window leaves subject 3 with no in-range samples in any modality,
+  # which would make its shared loading a_3 undefined (0/0).
+  set.seed(3)
+  p <- 3
+  build_subject <- function(times) rbind(times, matrix(rnorm(p * length(times)), nrow = p))
+  make_mod <- function() {
+    subjs <- list(
+      s1 = build_subject(c(0, 1, 2, 3)),
+      s2 = build_subject(c(0, 1, 2, 3)),
+      s3 = build_subject(c(8, 9, 10))       # only late samples
+    )
+    subjs
+  }
+  dl <- list(m1 = make_mod(), m2 = make_mod())
+  interval <- list(m1 = c(0, 4), m2 = c(0, 4))  # excludes subject 3 everywhere
+  expect_error(
+    suppressMessages(multi_tempted_decomp(dl, r = 1, interval = interval, maxiter = 2)),
+    "no samples inside the decomposition interval")
 })
 
 # --- Output structure ---------------------------------------------------------
