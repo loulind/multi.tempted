@@ -377,10 +377,10 @@ lipid_loadings <- t(as.matrix(output2$B_hat[["lipid"]]))
 prot_loadings  <- t(as.matrix(output2$B_hat[["protein"]]))
 
 # within-modality feature correlation matrices
-cyto_corr_mat  <- cor(cyto_loadings,  method = "kendall")
-metab_corr_mat <- cor(metab_loadings, method = "kendall")
-lipid_corr_mat <- cor(lipid_loadings, method = "kendall")
-prot_corr_mat  <- cor(prot_loadings,  method = "kendall")
+cyto_corr_mat  <- cor(cyto_loadings,  method = "spearman")
+metab_corr_mat <- cor(metab_loadings, method = "spearman")
+lipid_corr_mat <- cor(lipid_loadings, method = "spearman")
+prot_corr_mat  <- cor(prot_loadings,  method = "spearman")
 
 corrplot(cyto_corr_mat,  method = "color", type = "lower", tl.cex = 0.2, order = "hclust")
 ```
@@ -411,12 +411,12 @@ latent components. (using pheatmap package to create rectangular ordered
 heatmaps)
 
 ``` r
-cyto_v_metab <- cor(cyto_loadings, metab_loadings, method = "kendall")
-cyto_v_lipid <- cor(cyto_loadings, lipid_loadings, method = "kendall")
-cyto_v_prot  <- cor(cyto_loadings, prot_loadings,  method = "kendall")
-metab_v_lipid <- cor(metab_loadings, lipid_loadings, method = "kendall")
-metab_v_prot  <- cor(metab_loadings, prot_loadings,  method = "kendall")
-lipid_v_prot  <- cor(lipid_loadings, prot_loadings,  method = "kendall")
+cyto_v_metab <- cor(cyto_loadings, metab_loadings, method = "spearman")
+cyto_v_lipid <- cor(cyto_loadings, lipid_loadings, method = "spearman")
+cyto_v_prot  <- cor(cyto_loadings, prot_loadings,  method = "spearman")
+metab_v_lipid <- cor(metab_loadings, lipid_loadings, method = "spearman")
+metab_v_prot  <- cor(metab_loadings, prot_loadings,  method = "spearman")
+lipid_v_prot  <- cor(lipid_loadings, prot_loadings,  method = "spearman")
 
 pheatmap(cyto_v_metab,
          clustering_method = "complete",
@@ -497,7 +497,7 @@ the sign of the correlation (blue = positive, red = negative).
 
 choose_corr_here <- metab_corr_mat # change "metab" to one of "cyto", "lipid", or "prot"
 
-threshold       <- 0.70
+threshold       <- 0.85
 adjacency_matrix <- ifelse(abs(choose_corr_here) >= threshold, choose_corr_here, 0)
 diag(adjacency_matrix) <- 0
 
