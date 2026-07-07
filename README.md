@@ -303,28 +303,28 @@ lipid_corr_mat <- cor(lipid_loadings, method = "spearman")
 prot_corr_mat  <- cor(prot_loadings,  method = "spearman")
 
 corrplot(cyto_corr_mat,  method = "color", tl.cex = 0.001, order = "hclust", 
-         mar = c(0, 0, 2, 0), title = "Cytokine Spearman Corr Heatmap")
+         mar = c(0, 0, 2, 0), title = "Cytokine Loadings Spearman Corr Heatmap")
 ```
 
 <img src="man/figures/README-corrplot_within-1.png" alt="" width="100%" />
 
 ``` r
 corrplot(metab_corr_mat, method = "color", tl.cex = 0.001, order = "hclust", 
-         mar = c(0, 0, 2, 0), title = "Metabolite Spearman Corr Heatmap")
+         mar = c(0, 0, 2, 0), title = "Metabolite Loadings Spearman Corr Heatmap")
 ```
 
 <img src="man/figures/README-corrplot_within-2.png" alt="" width="100%" />
 
 ``` r
 corrplot(lipid_corr_mat, method = "color", tl.cex = 0.001, order = "hclust", 
-         mar = c(0, 0, 2, 0), title = "Lipid Spearman Corr Heatmap")
+         mar = c(0, 0, 2, 0), title = "Lipid Loadings Spearman Corr Heatmap")
 ```
 
 <img src="man/figures/README-corrplot_within-3.png" alt="" width="100%" />
 
 ``` r
 corrplot(prot_corr_mat,  method = "color", tl.cex = 0.001, order = "hclust", 
-         mar = c(0, 0, 2, 0), title = "Protein Spearman Corr Heatmap")
+         mar = c(0, 0, 2, 0), title = "Protein Loadings Spearman Corr Heatmap")
 ```
 
 <img src="man/figures/README-corrplot_within-4.png" alt="" width="100%" />
@@ -344,7 +344,7 @@ lipid_v_prot  <- cor(lipid_loadings, prot_loadings,  method = "spearman")
 pheatmap(cyto_v_metab,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Cytokine (row) vs Metabolome (col) Correlation Heatmap",
+         main = "Cytokine (row) vs Metabolome (col) Loadings Corr Heatmap",
          fontsize_row = 0.001,
          fontsize_col = 0.001)
 ```
@@ -355,7 +355,7 @@ pheatmap(cyto_v_metab,
 pheatmap(cyto_v_lipid,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Cytokine (row) vs Lipid (col) Correlation Heatmap",
+         main = "Cytokine (row) vs Lipid (col) Loadings Corr Heatmap",
          fontsize_row = 0.001,
          fontsize_col = 0.001)
 ```
@@ -366,7 +366,7 @@ pheatmap(cyto_v_lipid,
 pheatmap(cyto_v_prot,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Cytokine (row) vs Protein (col) Correlation Heatmap",
+         main = "Cytokine (row) vs Protein (col) Loadings Corr Heatmap",
          fontsize_row = 0.001,
          fontsize_col = 0.001)
 ```
@@ -377,7 +377,7 @@ pheatmap(cyto_v_prot,
 pheatmap(metab_v_lipid,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Metabolome (row) vs Lipid (col) Correlation Heatmap",
+         main = "Metabolome (row) vs Lipid (col) Loadings Corr Heatmap",
          fontsize_row = 0.001,
          fontsize_col = 0.001)
 ```
@@ -388,7 +388,7 @@ pheatmap(metab_v_lipid,
 pheatmap(metab_v_prot,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Metabolome (row) vs Protein (col) Correlation Heatmap",
+         main = "Metabolome (row) vs Protein (col) Loadings Corr Heatmap",
          fontsize_row = 0.001,
          fontsize_col = 0.001)
 ```
@@ -399,7 +399,7 @@ pheatmap(metab_v_prot,
 pheatmap(lipid_v_prot,
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Lipid (row) vs Protein (col) Correlation Heatmap",
+         main = "Lipid (row) vs Protein (col) Loadings Corr Heatmap",
          fontsize_row = 0.001,
          fontsize_col = 0.001)
 ```
@@ -417,10 +417,10 @@ negative).
 ``` r
 # choose a modality correlation matrix and threshold,
 
-choose_corr_here <- metab_corr_mat # change "metab" to one of "cyto", "lipid", or "prot"
+choose_corr <- metab_corr_mat # change "metab" to one of "cyto", "lipid", or "prot"
 
-threshold       <- 0.85
-adjacency_matrix <- ifelse(abs(choose_corr_here) >= threshold, choose_corr_here, 0)
+threshold  <- 0.85 # change threshold if too sparse or too dense
+adjacency_matrix <- ifelse(abs(choose_corr) >= threshold, choose_corr, 0)
 diag(adjacency_matrix) <- 0
 
 g <- graph_from_adjacency_matrix(
