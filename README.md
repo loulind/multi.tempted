@@ -342,9 +342,10 @@ metab_v_prot  <- cor(metab_loadings, prot_loadings,  method = "spearman")
 lipid_v_prot  <- cor(lipid_loadings, prot_loadings,  method = "spearman")
 
 pheatmap(cyto_v_metab,
+         main = "Cytokine (row) vs Metabolome (col) Loadings Corr Heatmap",
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Cytokine (row) vs Metabolome (col) Loadings Corr Heatmap",
+         legend_breaks = c(-1, -0.5, 0, 0.5, 1),
          fontsize_row = 0.001,
          fontsize_col = 0.001)
 ```
@@ -353,9 +354,10 @@ pheatmap(cyto_v_metab,
 
 ``` r
 pheatmap(cyto_v_lipid,
+         main = "Cytokine (row) vs Lipid (col) Loadings Corr Heatmap",
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Cytokine (row) vs Lipid (col) Loadings Corr Heatmap",
+         legend_breaks = c(-1, -0.5, 0, 0.5, 1),
          fontsize_row = 0.001,
          fontsize_col = 0.001)
 ```
@@ -364,9 +366,10 @@ pheatmap(cyto_v_lipid,
 
 ``` r
 pheatmap(cyto_v_prot,
+         main = "Cytokine (row) vs Protein (col) Loadings Corr Heatmap",
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Cytokine (row) vs Protein (col) Loadings Corr Heatmap",
+         legend_breaks = c(-1, -0.5, 0, 0.5, 1),
          fontsize_row = 0.001,
          fontsize_col = 0.001)
 ```
@@ -375,9 +378,10 @@ pheatmap(cyto_v_prot,
 
 ``` r
 pheatmap(metab_v_lipid,
+         main = "Metabolome (row) vs Lipid (col) Loadings Corr Heatmap",
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Metabolome (row) vs Lipid (col) Loadings Corr Heatmap",
+         legend_breaks = c(-1, -0.5, 0, 0.5, 1),
          fontsize_row = 0.001,
          fontsize_col = 0.001)
 ```
@@ -386,9 +390,10 @@ pheatmap(metab_v_lipid,
 
 ``` r
 pheatmap(metab_v_prot,
+         main = "Metabolome (row) vs Protein (col) Loadings Corr Heatmap",
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Metabolome (row) vs Protein (col) Loadings Corr Heatmap",
+         legend_breaks = c(-1, -0.5, 0, 0.5, 1),
          fontsize_row = 0.001,
          fontsize_col = 0.001)
 ```
@@ -397,9 +402,10 @@ pheatmap(metab_v_prot,
 
 ``` r
 pheatmap(lipid_v_prot,
+         main = "Lipid (row) vs Protein (col) Loadings Corr Heatmap",
          clustering_method = "complete",
          color = colorRampPalette(c("red", "white", "blue"))(50),
-         main = "Lipid (row) vs Protein (col) Loadings Corr Heatmap",
+         legend_breaks = c(-1, -0.5, 0, 0.5, 1),
          fontsize_row = 0.001,
          fontsize_col = 0.001)
 ```
