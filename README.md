@@ -117,8 +117,8 @@ for every argument. The decisions that matter most:
 - `weights`: down-weight a dominant modality when scales differ (see
   note below).
 
-> **Signs** of A, B, and Zeta can flip together, exactly as in SVD —
-> read relative patterns, not absolute sign.
+> **Signs** of A, B, and Zeta can flip together, exactly as in SVD; read
+> relative patterns, not absolute sign.
 
 > **Scale:** the shared A pools least-squares signal, so a larger-scale
 > modality pulls harder. These modalities share a log₁₀ scale, so equal
@@ -236,7 +236,7 @@ plot_feature_summary(
 ### Subject trajectories (meta-features)
 
 Loadings act as weights to collapse a modality into one “meta-feature”
-trajectory per subject and component — handy for group comparisons.
+trajectory per subject and component (handy for group comparisons).
 `metafeature_aggregate` uses observed data; `_est` uses the de-noised
 fit.
 
@@ -254,8 +254,8 @@ traj_plots$cytokine + labs(x = "Minutes from baseline")
 
 ### Modality loading correlations
 
-Features with similar loading profiles co-respond. Kendall correlations
-between loading vectors expose these modules — we refit with more
+Features with similar loading profiles co-respond. Spearman correlations
+between loading vectors expose these modules; we refit with more
 components (`r` = 10) for a richer profile.
 
 ``` r
