@@ -65,7 +65,8 @@ plot_feature_summary <- function(feature_mat, time_vec, group_vec,
     geom_line() +
     geom_ribbon(aes(ymin = .data$mean_all - CI_length * .data$merr_all,
                     ymax = .data$mean_all + CI_length * .data$merr_all,
-                    color = .data$group_all, fill = .data$group_all)) +
+                    color = .data$group_all, fill = .data$group_all),
+                linetype = 2, alpha = 0.3) +
     ylab(paste0("mean +/- ", round(CI_length, 2), "*se")) +
     facet_wrap(~ .data$feature_all, scales = "free", nrow = nrow)
 }
@@ -89,7 +90,7 @@ plot_feature_summary <- function(feature_mat, time_vec, group_vec,
 #' @return A length-M named list of ggplot2 objects, one per modality. Each
 #'   plot is faceted by component (one panel per PC).
 #' @seealso \code{\link{multitempted_all}}, \code{\link{multi_tempted_decomp}}.
-#' @importFrom ggplot2 ggplot aes geom_col geom_vline scale_y_discrete coord_cartesian facet_wrap
+#' @importFrom ggplot2 ggplot aes geom_col geom_vline scale_fill_manual scale_y_discrete coord_cartesian facet_wrap labs theme_bw theme element_text
 #' @export
 #' @md
 plot_feature_loading <- function(res, pct = 0.05, xlim = c(-0.5, 0.5)) {
@@ -141,11 +142,17 @@ plot_feature_loading <- function(res, pct = 0.05, xlim = c(-0.5, 0.5)) {
     .data <- NULL
     ggplot(all_data, aes(x = .data$value, y = .data$feat_factor,
                          fill = .data$sign)) +
-      geom_col() +
-      geom_vline(xintercept = 0) +
+      geom_col(width = 0.5, color="grey30", linewidth=0.25) +
+      geom_vline(xintercept = 0, linewidth = 0.4, colour = "grey30") +
+      scale_fill_manual(values = c(negative = "red3", positive = "steelblue"),
+                        guide = "none") +
       scale_y_discrete(labels = function(x) sub("__\\d+$", "", x)) +
       coord_cartesian(xlim = xlim) +
-      facet_wrap(~ component, scales = "free_y", ncol = 1)
+      facet_wrap(~ component, scales = "free_y", ncol = 1) +
+      labs(title = paste0("'", mod, "'", " Top ", 100*pct, "% Feature Loadings"),
+           x = "Feature loading", y = NULL) +
+      theme_bw() +
+      theme(plot.title = element_text(hjust = 0.5))
   })
 }
 
@@ -162,7 +169,7 @@ plot_feature_loading <- function(res, pct = 0.05, xlim = c(-0.5, 0.5)) {
 #'   Default \code{c(1, 2)}.
 #' @return A ggplot2 object.
 #' @seealso \code{\link{multitempted_all}}, \code{\link{multi_tempted_decomp}}.
-#' @importFrom ggplot2 ggplot aes geom_point labs
+#' @importFrom ggplot2 ggplot aes geom_point scale_color_brewer labs theme_minimal theme element_text
 #' @export
 #' @md
 plot_subject_loading <- function(res, group = NULL, pcs = c(1, 2)) {
@@ -190,6 +197,7 @@ plot_subject_loading <- function(res, group = NULL, pcs = c(1, 2)) {
     p <- ggplot(plot_df,
                 aes(x = .data[[pc_cols[1]]], y = .data[[pc_cols[2]]],
                     color = .data$group)) +
+      scale_color_brewer(palette = "Set1") +
       labs(color = group_label)
   } else {
     p <- ggplot(plot_df,
@@ -197,10 +205,16 @@ plot_subject_loading <- function(res, group = NULL, pcs = c(1, 2)) {
   }
 
   p +
-    geom_point() +
+    geom_point(size = 4, alpha = 0.8) +
+    theme_minimal() +
     labs(
-      x = paste0("PC ", pcs[1]),
-      y = paste0("PC ", pcs[2])
+      title = paste0("Subject Loadings: Principal Components ", pcs[1], " and ", pcs[2]),
+      x     = paste0("PC ", pcs[1]),
+      y     = paste0("PC ", pcs[2])
+    ) +
+    theme(
+      plot.title      = element_text(hjust = 0.5, face = "bold"),
+      legend.position = "right"
     )
 }
 
