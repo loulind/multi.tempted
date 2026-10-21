@@ -32,7 +32,7 @@
 #' @param r Number of components (rank of CP decomposition). Default 3.
 #'   Passed to \code{\link{multi_tempted_decomp}}.
 #' @param smooth RKHS smoothing penalty for the temporal loading functions.
-#'   Larger = smoother. Default 1e-8.
+#'   Larger = smoother. Default 1e-4.
 #'   Passed to \code{\link{multi_tempted_decomp}}.
 #' @param interval Length-M list of length-2 vectors giving the time range to
 #'   decompose for each modality, or \code{NULL} (default) to use each
@@ -103,7 +103,7 @@
 #' @md
 multitempted_all <- function(featuretables, timepoints, subjectID,
                              threshold = 0.95, pseudo = NULL, transforms = "clr",
-                             r = 3, smooth = 1e-8, interval = NULL, resolution = 101,
+                             r = 3, smooth = 1e-4, interval = NULL, resolution = 101,
                              maxiter = 100, epsilon = 1e-4, centralize = TRUE,
                              r_svd = 1, weights = NULL,
                              do_ratio = TRUE, pct_ratio = 0.05, absolute = FALSE,

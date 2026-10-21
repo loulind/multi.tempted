@@ -7,7 +7,7 @@
 multi_tempted_decomp(
   datlists,
   r = 3,
-  smooth = 1e-08,
+  smooth = 1e-04,
   interval = NULL,
   resolution = 101,
   maxiter = 20,
@@ -22,7 +22,7 @@ Each matrix is one subject: row 1 is sampling times, rows 2..p+1 are features.}
 \item{r}{Number of components (rank). Default 3.}
 
 \item{smooth}{RKHS smoothing penalty. Larger = smoother temporal functions.
-Default 1e-8.}
+Default 1e-4.}
 
 \item{interval}{Named list (length M) of length-2 vectors giving the time
 range to decompose for each modality. Default: full observed range per modality.}

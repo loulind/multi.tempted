@@ -12,7 +12,7 @@ multitempted_all(
   pseudo = NULL,
   transforms = "clr",
   r = 3,
-  smooth = 1e-08,
+  smooth = 1e-04,
   interval = NULL,
   resolution = 101,
   maxiter = 100,
@@ -56,7 +56,7 @@ Passed to \code{\link{format_tempted}}.}
 Passed to \code{\link{multi_tempted_decomp}}.}
 
 \item{smooth}{RKHS smoothing penalty for the temporal loading functions.
-Larger = smoother. Default 1e-8.
+Larger = smoother. Default 1e-4.
 Passed to \code{\link{multi_tempted_decomp}}.}
 
 \item{interval}{Length-M list of length-2 vectors giving the time range to

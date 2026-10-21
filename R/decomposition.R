@@ -8,7 +8,7 @@
 #'   Each matrix is one subject: row 1 is sampling times, rows 2..p+1 are features.
 #' @param r Number of components (rank). Default 3.
 #' @param smooth RKHS smoothing penalty. Larger = smoother temporal functions.
-#'   Default 1e-8.
+#'   Default 1e-4.
 #' @param interval Named list (length M) of length-2 vectors giving the time
 #'   range to decompose for each modality. Default: full observed range per modality.
 #' @param resolution Grid size for evaluating temporal loading functions. Default 101.
@@ -38,7 +38,7 @@
 #'   }
 #' @export
 #' @md
-multi_tempted_decomp <- function(datlists, r=3, smooth=1e-8, interval=NULL,
+multi_tempted_decomp <- function(datlists, r=3, smooth=1e-4, interval=NULL,
                                  resolution = 101, maxiter=20, epsilon=1e-4,
                                  weights=NULL) {
   if (!(length(datlists) >= 1)) {
@@ -290,7 +290,7 @@ flatten_features <- function(datlist_m, p_m, tipos_m) {
 #'   relative to the RKHS penalty, so the normal equation becomes
 #'   (w_m * K_a + smooth * I) beta = w_m * cvec. Default 1.
 #' @noRd
-freg_rkhs <- function(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth = 1e-8,
+freg_rkhs <- function(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth = 1e-4,
                       weight = 1) {
   K <- Kmat
   for (i in seq_along(Ly)) {
