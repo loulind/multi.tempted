@@ -292,12 +292,12 @@ flatten_features <- function(datlist_m, p_m, tipos_m) {
 #' @noRd
 freg_rkhs <- function(Ly, a_hat, ind_vec, Kmat, Kmat_output, smooth = 1e-4,
                       weight = 1) {
-  K <- Kmat
-  for (i in seq_along(Ly)) {
-    K[ind_vec == i, ] <- K[ind_vec == i, ] * a_hat[i]^2
-  }
+  # Row j of Kmat is scaled by a_hat[subject(j)]^2; recycling down the columns
+  # does this without a loop. solve(A, b) also avoids forming A inverse, which
+  # is both faster and better conditioned than solve(A) %*% b.
+  K <- Kmat * a_hat[ind_vec]^2
   cvec <- unlist(Ly)
-  beta <- solve(weight * K + smooth * diag(ncol(K))) %*% (weight * cvec)
+  beta <- solve(weight * K + diag(smooth, ncol(K)), weight * cvec)
 
   return(Kmat_output %*% beta)
 }
