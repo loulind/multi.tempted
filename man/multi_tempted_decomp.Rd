@@ -36,10 +36,8 @@ range to decompose for each modality. Default: full observed range per modality.
 \item{weights}{Length-M numeric vector of positive modality weights (w_1,...,w_M)
 that scale the data-fit term for each modality in the objective function.
 Larger weight = greater emphasis on that modality when estimating the shared
-subject loading and each modality's temporal loading. To equalise the
-influence of modalities that differ in scale, set \code{w_m} inversely
-proportional to that modality's total variance (e.g.
-\code{w_m = 1 / sum(X_m^2)}). To exclude a modality entirely, omit it from
+subject loading and each modality's temporal loading. To exclude a
+modality entirely, omit it from
 \code{datlists} rather than giving it weight 0. Default: equal weights (all 1).}
 }
 \value{

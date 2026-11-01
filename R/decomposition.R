@@ -17,10 +17,8 @@
 #' @param weights Length-M numeric vector of positive modality weights (w_1,...,w_M)
 #'   that scale the data-fit term for each modality in the objective function.
 #'   Larger weight = greater emphasis on that modality when estimating the shared
-#'   subject loading and each modality's temporal loading. To equalise the
-#'   influence of modalities that differ in scale, set `w_m` inversely
-#'   proportional to that modality's total variance (e.g.
-#'   `w_m = 1 / sum(X_m^2)`). To exclude a modality entirely, omit it from
+#'   subject loading and each modality's temporal loading. To exclude a
+#'   modality entirely, omit it from
 #'   `datlists` rather than giving it weight 0. Default: equal weights (all 1).
 #' @return A list with:
 #'   \describe{
